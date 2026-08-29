@@ -36,14 +36,14 @@ return [
     ],
 
     'firebase' => [
-        'api_key' => env('FIREBASE_API_KEY'),
-        'auth_domain' => env('FIREBASE_AUTH_DOMAIN'),
-        'database_url' => env('FIREBASE_DATABASE_URL'),
-        'project_id' => env('FIREBASE_PROJECT_ID'),
-        'storage_bucket' => env('FIREBASE_STORAGE_BUCKET'),
-        'messaging_sender_id' => env('FIREBASE_MESSAGING_SENDER_ID'),
-        'app_id' => env('FIREBASE_APP_ID'),
-        'measurement_id' => env('FIREBASE_MEASUREMENT_ID'),
+        'api_key' => env('FIREBASE_API_KEY', 'AIzaSyCtxBnw5jv06A58wzB9WfNbY35O0XxNcNc'),
+        'auth_domain' => env('FIREBASE_AUTH_DOMAIN', 'pharmacymanagesystem.firebaseapp.com'),
+        'database_url' => env('FIREBASE_DATABASE_URL', 'https://pharmacymanagesystem-default-rtdb.firebaseio.com'),
+        'project_id' => env('FIREBASE_PROJECT_ID', 'pharmacymanagesystem'),
+        'storage_bucket' => env('FIREBASE_STORAGE_BUCKET', 'pharmacymanagesystem.firebasestorage.app'),
+        'messaging_sender_id' => env('FIREBASE_MESSAGING_SENDER_ID', '227901150233'),
+        'app_id' => env('FIREBASE_APP_ID', '1:227901150233:web:591a4ea18dc3b4e7d84688'),
+        'measurement_id' => env('FIREBASE_MEASUREMENT_ID', 'G-4G8B6Y9X28'),
     ],
 
 ];

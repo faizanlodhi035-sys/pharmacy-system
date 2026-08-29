@@ -1,14 +1,14 @@
 <!-- Firebase Direct Engine -->
 <script>
   window.firebaseConfig = {
-    apiKey: "{{ config('services.firebase.api_key', 'AIzaSyCtxBnw5jv06A58wzB9WfNbY35O0XxNcNc') }}",
-    authDomain: "{{ config('services.firebase.auth_domain', 'pharmacymanagesystem.firebaseapp.com') }}",
-    databaseURL: "{{ config('services.firebase.database_url', 'https://pharmacymanagesystem-default-rtdb.firebaseio.com') }}",
-    projectId: "{{ config('services.firebase.project_id', 'pharmacymanagesystem') }}",
-    storageBucket: "{{ config('services.firebase.storage_bucket', 'pharmacymanagesystem.firebasestorage.app') }}",
-    messagingSenderId: "{{ config('services.firebase.messaging_sender_id', '227901150233') }}",
-    appId: "{{ config('services.firebase.app_id', '1:227901150233:web:591a4ea18dc3b4e7d84688') }}",
-    measurementId: "{{ config('services.firebase.measurement_id', 'G-4G8B6Y9X28') }}"
+    apiKey: "{{ config('services.firebase.api_key') ?: 'AIzaSyCtxBnw5jv06A58wzB9WfNbY35O0XxNcNc' }}",
+    authDomain: "{{ config('services.firebase.auth_domain') ?: 'pharmacymanagesystem.firebaseapp.com' }}",
+    databaseURL: "{{ config('services.firebase.database_url') ?: 'https://pharmacymanagesystem-default-rtdb.firebaseio.com' }}",
+    projectId: "{{ config('services.firebase.project_id') ?: 'pharmacymanagesystem' }}",
+    storageBucket: "{{ config('services.firebase.storage_bucket') ?: 'pharmacymanagesystem.firebasestorage.app' }}",
+    messagingSenderId: "{{ config('services.firebase.messaging_sender_id') ?: '227901150233' }}",
+    appId: "{{ config('services.firebase.app_id') ?: '1:227901150233:web:591a4ea18dc3b4e7d84688' }}",
+    measurementId: "{{ config('services.firebase.measurement_id') ?: 'G-4G8B6Y9X28' }}"
   };
 
   function getFirebaseAuth() {
