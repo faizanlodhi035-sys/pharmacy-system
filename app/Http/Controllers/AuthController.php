@@ -29,11 +29,11 @@ class AuthController extends Controller
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
             
-            // Role ke mutabiq redirection
-            if (Auth::user()->role === 'admin') {
-                return redirect()->intended('/dashboard');
+            $user = Auth::user();
+            if ($user->role === 'cashier') {
+                return redirect('/pos');
             } else {
-                return redirect()->intended('/pos');
+                return redirect('/dashboard');
             }
         }
 
@@ -42,10 +42,11 @@ class AuthController extends Controller
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
             
-            if (Auth::user()->role === 'admin') {
-                return redirect()->intended('/dashboard');
+            $user = Auth::user();
+            if ($user->role === 'cashier') {
+                return redirect('/pos');
             } else {
-                return redirect()->intended('/pos');
+                return redirect('/dashboard');
             }
         }
 

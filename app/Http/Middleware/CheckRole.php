@@ -29,6 +29,10 @@ class CheckRole
             return $next($request);
         }
 
-        abort(403, "Unauthorized action. Your role ('" . ucfirst($user->role ?? 'User') . "') does not have permission to access this page.");
+        if ($user->role === 'cashier') {
+            return redirect('/pos')->with('error', "Access Restricted: Cashiers only have access to POS Counter.");
+        }
+
+        return redirect('/dashboard')->with('error', "Access Restricted: You do not have permission to access that section.");
     }
 }
