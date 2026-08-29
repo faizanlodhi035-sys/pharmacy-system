@@ -1,7 +1,7 @@
 <!-- Firebase JS SDK Integration -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
   import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
   const firebaseConfig = {
@@ -26,53 +26,79 @@
   window.firebaseAuth = auth;
   window.firebaseDb = db;
 
+  async function handleServerLogin(user) {
+    const response = await fetch('/login/firebase', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+      },
+      body: JSON.stringify({
+        email: user.email,
+        name: user.displayName,
+        uid: user.uid
+      })
+    });
+
+    const data = await response.json();
+    if (data.success) {
+      window.location.href = data.redirect || '/dashboard';
+    } else {
+      alert(data.message || 'Firebase login failed on server.');
+    }
+  }
+
+  // Check for redirect result on page load
+  try {
+    getRedirectResult(auth).then((result) => {
+      if (result && result.user) {
+        handleServerLogin(result.user);
+      }
+    }).catch((err) => {
+      console.warn('Redirect result check:', err);
+    });
+  } catch (e) {
+    console.warn(e);
+  }
+
   window.loginWithFirebaseGoogle = async function() {
     const btn = document.getElementById('firebase-google-btn');
     const originalText = btn ? btn.innerHTML : '';
-    if (btn) btn.innerHTML = 'Connecting to Google...';
+    if (btn) btn.innerHTML = '<span class="animate-pulse">Connecting to Google...</span>';
 
     try {
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      
-      if (btn) btn.innerHTML = 'Signing in to Dashboard...';
-
-      const response = await fetch('/login/firebase', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        },
-        body: JSON.stringify({
-          email: user.email,
-          name: user.displayName,
-          uid: user.uid
-        })
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        window.location.href = data.redirect || '/dashboard';
-      } else {
-        alert(data.message || 'Firebase login failed on server.');
-        if (btn) btn.innerHTML = originalText;
+      if (result && result.user) {
+        if (btn) btn.innerHTML = 'Signing in to Dashboard...';
+        await handleServerLogin(result.user);
       }
     } catch (error) {
       console.error('Firebase Auth Error:', error);
       if (btn) btn.innerHTML = originalText;
-      if (error.code === 'auth/unauthorized-domain') {
-        alert('⚠️ Firebase Authorized Domain Error:\nPlease wait 1-2 minutes for Firebase to propagate authorized domain.');
+      
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+        // Fallback to full page redirect if popup is blocked
+        if (btn) btn.innerHTML = 'Redirecting to Google...';
+        await signInWithRedirect(auth, provider);
+      } else if (error.code === 'auth/unauthorized-domain') {
+        alert('⚠️ Firebase Authorized Domain Error:\nPlease wait 1-2 minutes for Firebase to update authorized domains.');
       } else if (error.code === 'auth/operation-not-allowed') {
-        alert('⚠️ Google Sign-in Firebase mein Enable nahi hai!\nPlease Firebase Console -> Authentication -> Sign-in method mein jaakar Google ko "Enable" karein.');
-      } else if (error.code === 'auth/popup-blocked') {
-        alert('⚠️ Browser ne popup block kiya hai. Browser URL bar se popup allow karein.');
+        alert('⚠️ Google Sign-In is not enabled in Firebase Console.');
       } else if (error.code === 'auth/popup-closed-by-user') {
-        // User closed popup
+        // User closed the popup
       } else {
-        alert('Google Sign-In Notice: ' + (error.message || error.code));
+        alert('Google Sign-In: ' + (error.message || error.code));
       }
     }
   };
+
+  // Attach directly to button if present
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('firebase-google-btn');
+    if (btn) {
+      btn.onclick = window.loginWithFirebaseGoogle;
+    }
+  });
 
   @auth
   // Real-time Role Sync Listener
