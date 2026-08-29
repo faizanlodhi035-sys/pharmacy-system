@@ -19,6 +19,7 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
   const db = getDatabase(app);
 
   window.firebaseApp = app;
@@ -28,12 +29,14 @@
   window.loginWithFirebaseGoogle = async function() {
     const btn = document.getElementById('firebase-google-btn');
     const originalText = btn ? btn.innerHTML : '';
-    if (btn) btn.innerHTML = 'Signing in...';
+    if (btn) btn.innerHTML = 'Connecting to Google...';
 
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       
+      if (btn) btn.innerHTML = 'Signing in to Dashboard...';
+
       const response = await fetch('/login/firebase', {
         method: 'POST',
         headers: {
@@ -51,20 +54,22 @@
       if (data.success) {
         window.location.href = data.redirect || '/dashboard';
       } else {
-        alert(data.message || 'Firebase login failed.');
+        alert(data.message || 'Firebase login failed on server.');
         if (btn) btn.innerHTML = originalText;
       }
     } catch (error) {
       console.error('Firebase Auth Error:', error);
       if (btn) btn.innerHTML = originalText;
       if (error.code === 'auth/unauthorized-domain') {
-        alert('⚠️ Firebase Authorized Domain Error:\n\nPlease add "pharmacymanagesystem.onrender.com" to your Firebase Console -> Authentication -> Settings -> Authorized Domains.');
+        alert('⚠️ Firebase Authorized Domain Error:\nPlease wait 1-2 minutes for Firebase to propagate authorized domain.');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        alert('⚠️ Google Sign-in Firebase mein Enable nahi hai!\nPlease Firebase Console -> Authentication -> Sign-in method mein jaakar Google ko "Enable" karein.');
       } else if (error.code === 'auth/popup-blocked') {
-        alert('⚠️ Browser ne popup block kar diya hai. Please allow popups for this site.');
+        alert('⚠️ Browser ne popup block kiya hai. Browser URL bar se popup allow karein.');
       } else if (error.code === 'auth/popup-closed-by-user') {
-        // User closed popup, do nothing
+        // User closed popup
       } else {
-        alert('Firebase Google Sign-In: ' + (error.message || error.code || 'Error'));
+        alert('Google Sign-In Notice: ' + (error.message || error.code));
       }
     }
   };
