@@ -1,0 +1,511 @@
+============================================
+ PHARMACY MANAGEMENT SYSTEM - FULL AUDIT
+============================================
+
+===== ENVIRONMENT =====
+Laravel: Laravel Framework 12.67.0
+PHP: 8.2.12
+
+
+
+============================================
+ MODELS
+============================================
+app/Models/Category.php
+app/Models/Customer.php
+app/Models/Medicine.php
+app/Models/MedicineBatch.php
+app/Models/Purchase.php
+app/Models/PurchaseInvoice.php
+app/Models/PurchaseInvoiceItem.php
+app/Models/Sale.php
+app/Models/SaleItem.php
+app/Models/Supplier.php
+app/Models/User.php
+TOTAL FILES: 11
+
+
+============================================
+ CONTROLLERS
+============================================
+app/Http/Controllers/Admin/DashboardController.php
+app/Http/Controllers/Admin/MedicineController.php
+app/Http/Controllers/Admin/PurchaseController.php
+app/Http/Controllers/Admin/SaleController.php
+app/Http/Controllers/Admin/SupplierController.php
+app/Http/Controllers/AuthController.php
+app/Http/Controllers/Controller.php
+app/Http/Controllers/MedicineController.php
+app/Http/Controllers/PosController.php
+TOTAL FILES: 9
+
+
+============================================
+ LIVEWIRE
+============================================
+app/Livewire/Admin/AddMedicine.php
+app/Livewire/Admin/PurchaseCreate.php
+app/Livewire/Pos/PosCounter.php
+TOTAL FILES: 3
+
+
+============================================
+ VIEWS
+============================================
+resources/views/admin/dashboard.blade.php
+resources/views/admin/expiry/index.blade.php
+resources/views/admin/medicines/create.blade.php
+resources/views/admin/purchases/create.blade.php
+resources/views/admin/purchases/index.blade.php
+resources/views/admin/sales/index.blade.php
+resources/views/admin/sales/receipt.blade.php
+resources/views/admin/suppliers/create.blade.php
+resources/views/admin/suppliers/edit.blade.php
+resources/views/admin/suppliers/index.blade.php
+resources/views/admin/suppliers/payable-report.blade.php
+resources/views/admin/suppliers/show.blade.php
+resources/views/auth/login.blade.php
+resources/views/auth/register.blade.php
+resources/views/components/admin/⚡add-medicine.blade.php
+resources/views/components/admin/⚡medicine-list.blade.php
+resources/views/components/admin/⚡purchase-create.blade.php
+resources/views/components/pos/⚡pos-counter.blade.php
+resources/views/components/⚡medicine-list.blade.php
+resources/views/components/⚡pos-counter.blade.php
+resources/views/layouts/admin.blade.php
+resources/views/layouts/app.blade.php
+resources/views/livewire/admin/add-medicine.blade.php
+resources/views/livewire/admin/medicine-list.blade.php
+resources/views/livewire/admin/purchase-create.blade.php
+resources/views/livewire/pos/pos-counter.blade.php
+resources/views/pos-page.blade.php
+resources/views/welcome.blade.php
+TOTAL FILES: 28
+
+
+============================================
+ MIGRATIONS
+============================================
+database/migrations/0001_01_01_000000_create_users_table.php
+database/migrations/0001_01_01_000001_create_cache_table.php
+database/migrations/0001_01_01_000002_create_jobs_table.php
+database/migrations/2026_08_21_192907_create_pharmacy_tables.php
+database/migrations/2026_08_22_065840_add_role_to_users_table.php
+database/migrations/2026_08_22_095037_create_suppliers_table.php
+database/migrations/2026_08_22_101335_create_purchases_table.php
+database/migrations/2026_08_22_103546_create_purchase_invoices_table.php
+database/migrations/2026_08_22_103732_create_purchase_invoice_items_table.php
+database/migrations/2026_08_22_211535_create_customers_table.php
+database/migrations/2026_08_22_232510_make_medicine_prices_nullable.php
+TOTAL FILES: 11
+
+
+============================================
+ ROUTES
+============================================
+routes/console.php
+routes/web.php
+TOTAL FILES: 2
+
+
+============================================
+ PHP SOURCE SUMMARY
+============================================
+
+--- app/Models/Category.php ---
+Namespace: App\Models
+Class: Category
+Methods: medicines
+Fillable: 'name', 'slug', 'description'
+Relationships:
+  - hasMany -> Medicine
+
+--- app/Models/Customer.php ---
+Namespace: App\Models
+Class: Customer
+Fillable: 'name', 'phone', 'email', 'address'
+
+--- app/Models/Medicine.php ---
+Namespace: App\Models
+Class: Medicine
+Methods: category, batches, getTotalStockAttribute
+Fillable: 'medicine_id', 'batch_number', 'quantity', 'selling_price', 'expiry_date'
+Relationships:
+  - belongsTo -> Category
+  - hasMany -> MedicineBatch
+
+--- app/Models/MedicineBatch.php ---
+Namespace: App\Models
+Class: MedicineBatch
+Methods: medicine
+Fillable: 'medicine_id', 'batch_number', 'quantity', 'expiry_date', 'purchase_price', 'selling_price'
+Relationships:
+  - belongsTo -> Medicine
+
+--- app/Models/Purchase.php ---
+Namespace: App\Models
+Class: Purchase
+Methods: supplier, medicine
+Fillable: 'supplier_id', 'medicine_id', 'batch_number', 'quantity', 'purchase_price', 'total_amount', 'purchase_date'
+Relationships:
+  - belongsTo -> Supplier
+  - belongsTo -> Medicine
+
+--- app/Models/PurchaseInvoice.php ---
+Namespace: App\Models
+Class: PurchaseInvoice
+Methods: supplier, items
+Fillable: 'supplier_id', 'invoice_number', 'purchase_date', 'subtotal', 'tax_amount', 'grand_total'
+Relationships:
+  - belongsTo -> Supplier
+  - hasMany -> PurchaseInvoiceItem
+
+--- app/Models/PurchaseInvoiceItem.php ---
+Namespace: App\Models
+Class: PurchaseInvoiceItem
+Methods: medicine
+Fillable: 'purchase_invoice_id', 'medicine_id', 'batch_number', 'quantity', 'purchase_price', 'selling_price', 'expiry_date', 'tax_percent', 'total'
+Relationships:
+  - belongsTo -> Medicine
+
+--- app/Models/Sale.php ---
+Namespace: App\Models
+Class: Sale
+Methods: items
+Fillable: 'invoice_number', 'user_id', 'subtotal', 'total_amount', 'paid_amount', 'change_amount'
+Relationships:
+  - hasMany -> SaleItem
+
+--- app/Models/SaleItem.php ---
+Namespace: App\Models
+Class: SaleItem
+Methods: sale, medicine, batch
+Fillable: 'sale_id', 'medicine_id', 'batch_id', 'quantity', 'unit_price', 'subtotal'
+Relationships:
+  - belongsTo -> Sale
+  - belongsTo -> Medicine
+  - belongsTo -> MedicineBatch
+
+--- app/Models/Supplier.php ---
+Namespace: App\Models
+Class: Supplier
+Methods: purchases
+Fillable: 'name', 'contact_person', 'phone', 'email', 'address', 'gst_number', 'opening_balance'
+Relationships:
+  - hasMany -> Purchase
+
+--- app/Models/User.php ---
+Namespace: App\Models
+Class: User
+Methods: casts
+Fillable: 'name', 'email', 'password',
+
+--- app/Http/Controllers/Admin/DashboardController.php ---
+Namespace: App\Http\Controllers\Admin
+Class: DashboardController
+Methods: index
+
+--- app/Http/Controllers/Admin/MedicineController.php ---
+Namespace: App\Http\Controllers\Admin
+Class: MedicineController
+Methods: index, create, store
+
+--- app/Http/Controllers/Admin/PurchaseController.php ---
+Namespace: App\Http\Controllers\Admin
+Class: PurchaseController
+Methods: index, create, store, show
+
+--- app/Http/Controllers/Admin/SaleController.php ---
+Namespace: App\Http\Controllers\Admin
+Class: SaleController
+Methods: index, show
+
+--- app/Http/Controllers/Admin/SupplierController.php ---
+Namespace: App\Http\Controllers\Admin
+Class: SupplierController
+Methods: index, create, store, edit, update, destroy, show, payableReport
+
+--- app/Http/Controllers/AuthController.php ---
+Namespace: App\Http\Controllers
+Class: AuthController
+Methods: showLogin, login, showRegister, register, logout
+
+--- app/Http/Controllers/Controller.php ---
+Namespace: App\Http\Controllers
+Class: Controller
+
+--- app/Http/Controllers/MedicineController.php ---
+Namespace: App\Http\Controllers\Admin
+Class: MedicineController
+Methods: index, store
+
+--- app/Http/Controllers/PosController.php ---
+Namespace: App\Http\Controllers
+Class: PosController
+Methods: index
+
+--- app/Livewire/Admin/AddMedicine.php ---
+Namespace: App\Http\Livewire\Admin
+Class: AddMedicine
+Methods: updatedName, selectMedicine, save, render
+
+--- app/Livewire/Admin/PurchaseCreate.php ---
+Namespace: App\Http\Livewire\Admin
+Class: PurchaseCreate
+Methods: mount, addItem, removeItem, getSubtotalProperty, getTaxTotalProperty, getGrandTotalProperty, saveInvoice, render
+
+--- app/Livewire/Pos/PosCounter.php ---
+Namespace: App\Livewire\Pos
+Class: PosCounter
+Methods: mount, render, addToCart, incrementQty, decrementQty, removeItem, clearCart, updatedDiscount, updatedPaidAmount, calculateTotals, openCustomerModal, closeCustomerModal, saveCustomer, checkout
+
+
+============================================
+ BLADE VIEW SUMMARY
+============================================
+
+--- resources/views/admin/dashboard.blade.php ---
+Forms: 0
+Links/Actions:
+  - /pos
+  - /sales
+
+--- resources/views/admin/expiry/index.blade.php ---
+Forms: 0
+
+--- resources/views/admin/medicines/create.blade.php ---
+Forms: 1
+Links/Actions:
+  - /medicines
+
+--- resources/views/admin/purchases/create.blade.php ---
+Forms: 1
+Links/Actions:
+  - /purchases
+
+--- resources/views/admin/purchases/index.blade.php ---
+Forms: 0
+Links/Actions:
+  - /purchases/create
+  - /purchases/{{ $purchase->id }}
+
+--- resources/views/admin/sales/index.blade.php ---
+Forms: 0
+Links/Actions:
+  - /pos
+  - /sales/{{ $sale->id }}
+
+--- resources/views/admin/sales/receipt.blade.php ---
+Forms: 0
+
+--- resources/views/admin/suppliers/create.blade.php ---
+Forms: 1
+Links/Actions:
+  - /suppliers
+
+--- resources/views/admin/suppliers/edit.blade.php ---
+Forms: 1
+Links/Actions:
+  - /suppliers/{{ $supplier->id }}
+  - /suppliers
+
+--- resources/views/admin/suppliers/index.blade.php ---
+Forms: 1
+Links/Actions:
+  - /suppliers-payable-report
+  - /suppliers/create
+  - /suppliers/{{ $supplier->id }}
+  - /suppliers/{{ $supplier->id }}/edit
+
+--- resources/views/admin/suppliers/payable-report.blade.php ---
+Forms: 0
+Links/Actions:
+  - /suppliers
+
+--- resources/views/admin/suppliers/show.blade.php ---
+Forms: 0
+Links/Actions:
+  - /suppliers
+
+--- resources/views/auth/login.blade.php ---
+Forms: 1
+Links/Actions:
+  - /login
+  - /register
+
+--- resources/views/auth/register.blade.php ---
+Forms: 1
+Links/Actions:
+  - /register
+  - /login
+
+--- resources/views/components/admin/⚡add-medicine.blade.php ---
+Forms: 0
+
+--- resources/views/components/admin/⚡medicine-list.blade.php ---
+Forms: 0
+
+--- resources/views/components/admin/⚡purchase-create.blade.php ---
+Forms: 0
+
+--- resources/views/components/pos/⚡pos-counter.blade.php ---
+Forms: 0
+
+--- resources/views/components/⚡medicine-list.blade.php ---
+Forms: 0
+
+--- resources/views/components/⚡pos-counter.blade.php ---
+Forms: 0
+
+--- resources/views/layouts/admin.blade.php ---
+Forms: 1
+Links/Actions:
+  - https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css
+  - /dashboard
+  - /medicines
+  - /pos
+  - /sales
+  - /expiry-alerts
+  - /logout
+Uses Livewire: YES
+
+--- resources/views/layouts/app.blade.php ---
+Forms: 1
+Links/Actions:
+  - https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css
+  - /dashboard
+  - /medicines
+  - /purchases
+  - /suppliers
+  - /pos
+  - /sales
+  - /expiry-alerts
+  - /logout
+Uses Livewire: YES
+
+--- resources/views/livewire/admin/add-medicine.blade.php ---
+Forms: 1
+Links/Actions:
+  - /medicines/store
+  - /medicines
+
+--- resources/views/livewire/admin/medicine-list.blade.php ---
+Forms: 1
+Links/Actions:
+  - /medicines
+
+--- resources/views/livewire/admin/purchase-create.blade.php ---
+Forms: 0
+Links/Actions:
+  - /purchases
+Uses wire directives: YES
+
+--- resources/views/livewire/pos/pos-counter.blade.php ---
+Forms: 0
+Uses wire directives: YES
+
+--- resources/views/pos-page.blade.php ---
+Forms: 0
+Uses Livewire: YES
+
+--- resources/views/welcome.blade.php ---
+Forms: 0
+Links/Actions:
+  - https://fonts.bunny.net
+  - https://fonts.bunny.net/css?family=instrument-sans:400,500,600
+  - {{ url(
+  - {{ route(
+  - https://laravel.com/docs
+  - https://laracasts.com
+  - https://cloud.laravel.com
+
+
+============================================
+ DATABASE MIGRATION SUMMARY
+============================================
+
+--- 0001_01_01_000000_create_users_table.php ---
+Creates: users, password_reset_tokens, sessions
+Foreign Keys: user_id
+
+--- 0001_01_01_000001_create_cache_table.php ---
+Creates: cache, cache_locks
+
+--- 0001_01_01_000002_create_jobs_table.php ---
+Creates: jobs, job_batches, failed_jobs
+
+--- 2026_08_21_192907_create_pharmacy_tables.php ---
+Creates: categories, medicines, medicine_batches, sales, sale_items
+Foreign Keys: category_id, medicine_id, user_id, sale_id, batch_id
+
+--- 2026_08_22_065840_add_role_to_users_table.php ---
+Alters: users
+
+--- 2026_08_22_095037_create_suppliers_table.php ---
+Creates: suppliers
+
+--- 2026_08_22_101335_create_purchases_table.php ---
+Creates: purchases
+Foreign Keys: supplier_id, medicine_id
+
+--- 2026_08_22_103546_create_purchase_invoices_table.php ---
+Creates: purchase_invoices
+Foreign Keys: supplier_id
+
+--- 2026_08_22_103732_create_purchase_invoice_items_table.php ---
+Creates: purchase_invoice_items
+Foreign Keys: purchase_invoice_id, medicine_id
+
+--- 2026_08_22_211535_create_customers_table.php ---
+Creates: customers
+
+--- 2026_08_22_232510_make_medicine_prices_nullable.php ---
+Alters: medicines
+
+
+============================================
+ ROUTE TARGET CHECK
+============================================
+
+  GET|HEAD  / ................................................................................................................................... routes/web.php:14
+  GET|HEAD  dashboard ............................................................................................................. Admin\DashboardController@index
+  GET|HEAD  expiry-alerts .................................................................................................. Admin\DashboardController@expiryReport
+  GET|HEAD  login ................................................................................................................ login › AuthController@showLogin
+  POST      login ............................................................................................................................ AuthController@login
+  POST      logout .......................................................................................................................... AuthController@logout
+  GET|HEAD  medicines .............................................................................................................. Admin\MedicineController@index
+  POST      medicines/store ........................................................................................................ Admin\MedicineController@store
+  GET|HEAD  pos ....................................................................................................................... App\Livewire\Pos\PosCounter
+  GET|HEAD  purchases .............................................................................................................. Admin\PurchaseController@index
+  POST      purchases .............................................................................................................. Admin\PurchaseController@store
+  GET|HEAD  purchases/create ...................................................................................................... Admin\PurchaseController@create
+  GET|HEAD  register .................................................................................................................. AuthController@showRegister
+  POST      register ...................................................................................................................... AuthController@register
+  GET|HEAD  sales ...................................................................................................................... Admin\SaleController@index
+  GET|HEAD  sales/{id} .................................................................................................................. Admin\SaleController@show
+  GET|HEAD  suppliers .............................................................................................................. Admin\SupplierController@index
+  POST      suppliers .............................................................................................................. Admin\SupplierController@store
+  GET|HEAD  suppliers-payable-report ....................................................................................... Admin\SupplierController@payableReport
+  GET|HEAD  suppliers/create ...................................................................................................... Admin\SupplierController@create
+  PUT       suppliers/{supplier} .................................................................................................. Admin\SupplierController@update
+  DELETE    suppliers/{supplier} ................................................................................................. Admin\SupplierController@destroy
+  GET|HEAD  suppliers/{supplier} .................................................................................................... Admin\SupplierController@show
+  GET|HEAD  suppliers/{supplier}/edit ............................................................................................... Admin\SupplierController@edit
+
+                                                                                                                                                Showing [24] routes
+
+
+
+============================================
+ DATABASE RECORD COUNTS
+============================================
+
+Fatal error: Uncaught Error: Class "App\Models\User" not found in D:\pharmacy-system\__audit_db.php:2
+Stack trace:
+#0 {main}
+  thrown in D:\pharmacy-system\__audit_db.php on line 2
+
+
+============================================
+ AUDIT COMPLETE
+============================================

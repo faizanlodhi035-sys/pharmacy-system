@@ -1,0 +1,226 @@
+<?php
+
+namespace App\Livewire\Admin;
+
+use App\Models\Category;
+use App\Models\Medicine;
+use Illuminate\Support\Facades\DB;
+use Livewire\Component;
+
+class BulkAddMedicine extends Component
+{
+    public array $rows = [];
+
+    public function mount(): void
+    {
+        for ($i = 0; $i < 3; $i++) {
+            $this->addRow();
+        }
+    }
+
+    public function addRow(): void
+    {
+        $this->rows[] = [
+            'name' => '',
+            'category_id' => '',
+            'generic_name' => '',
+            'brand' => '',
+            'manufacturer' => '',
+            'dosage_unit' => 'Tablet',
+            'unit_price' => '',
+            'purchase_price' => '',
+            'alert_quantity' => '10',
+            'barcode' => '',
+        ];
+    }
+
+    public function removeRow(int $index): void
+    {
+        if (isset($this->rows[$index])) {
+            unset($this->rows[$index]);
+            $this->rows = array_values($this->rows);
+        }
+
+        if (empty($this->rows)) {
+            $this->addRow();
+        }
+    }
+
+    public function saveAll()
+    {
+        $this->resetErrorBag();
+
+        // 1. Filter out empty rows (where name is empty)
+        $nonEmptyIndices = [];
+        foreach ($this->rows as $index => $row) {
+            if (!empty(trim($row['name'] ?? ''))) {
+                $nonEmptyIndices[] = $index;
+            }
+        }
+
+        if (empty($nonEmptyIndices)) {
+            $this->addError('general', 'Please enter details for at least one medicine before saving.');
+            return;
+        }
+
+        // 2. Perform in-list duplicate checks & DB duplicate checks
+        $namesSeen = [];
+        $barcodesSeen = [];
+        $hasDuplicateError = false;
+
+        foreach ($nonEmptyIndices as $index) {
+            $name = trim($this->rows[$index]['name']);
+            $nameLower = strtolower($name);
+            $barcode = trim($this->rows[$index]['barcode'] ?? '');
+            $barcodeLower = strtolower($barcode);
+
+            // Check duplicate name within the bulk list
+            if (isset($namesSeen[$nameLower])) {
+                $this->addError("rows.{$index}.name", "Duplicate medicine name '{$name}' in list.");
+                $hasDuplicateError = true;
+            } else {
+                $namesSeen[$nameLower] = $index;
+            }
+
+            // Check duplicate barcode within the bulk list
+            if ($barcode !== '') {
+                if (isset($barcodesSeen[$barcodeLower])) {
+                    $this->addError("rows.{$index}.barcode", "Duplicate barcode '{$barcode}' in list.");
+                    $hasDuplicateError = true;
+                } else {
+                    $barcodesSeen[$barcodeLower] = $index;
+                }
+            }
+
+            // Check duplicate name in Database
+            if (Medicine::where('name', $name)->exists()) {
+                $this->addError("rows.{$index}.name", "Medicine '{$name}' already exists in database.");
+                $hasDuplicateError = true;
+            }
+
+            // Check duplicate barcode in Database
+            if ($barcode !== '' && Medicine::where('barcode', $barcode)->exists()) {
+                $this->addError("rows.{$index}.barcode", "Barcode '{$barcode}' already exists in database.");
+                $hasDuplicateError = true;
+            }
+        }
+
+        // 3. Perform standard validation on non-empty rows
+        $rules = [];
+        $attributes = [];
+
+        foreach ($nonEmptyIndices as $index) {
+            $rules["rows.{$index}.name"] = 'required|string|max:255';
+            $rules["rows.{$index}.category_id"] = 'required|exists:categories,id';
+            $rules["rows.{$index}.generic_name"] = 'nullable|string|max:255';
+            $rules["rows.{$index}.brand"] = 'nullable|string|max:255';
+            $rules["rows.{$index}.manufacturer"] = 'nullable|string|max:255';
+            $rules["rows.{$index}.dosage_unit"] = 'nullable|string|max:50';
+            $rules["rows.{$index}.unit_price"] = 'required|numeric|min:0';
+            $rules["rows.{$index}.purchase_price"] = 'nullable|numeric|min:0';
+            $rules["rows.{$index}.alert_quantity"] = 'nullable|integer|min:0';
+            $rules["rows.{$index}.barcode"] = 'nullable|string|max:255';
+
+            $rowNum = $index + 1;
+            $attributes["rows.{$index}.name"] = "Row {$rowNum} Medicine Name";
+            $attributes["rows.{$index}.category_id"] = "Row {$rowNum} Category";
+            $attributes["rows.{$index}.unit_price"] = "Row {$rowNum} Unit/Sale Price";
+            $attributes["rows.{$index}.purchase_price"] = "Row {$rowNum} Purchase Price";
+            $attributes["rows.{$index}.alert_quantity"] = "Row {$rowNum} Alert Quantity";
+            $attributes["rows.{$index}.barcode"] = "Row {$rowNum} Barcode";
+        }
+
+        $this->validate($rules, [], $attributes);
+
+        if ($hasDuplicateError) {
+            return;
+        }
+
+        // 4. Save inside Database Transaction
+        try {
+            DB::transaction(function () use ($nonEmptyIndices) {
+                foreach ($nonEmptyIndices as $index) {
+                    $row = $this->rows[$index];
+                    $name = trim($row['name']);
+                    $dosageUnit = !empty(trim($row['dosage_unit'] ?? '')) ? trim($row['dosage_unit']) : 'Tablet';
+                    $unitPrice = (float) $row['unit_price'];
+                    $purchasePrice = ($row['purchase_price'] !== '' && $row['purchase_price'] !== null) ? (float) $row['purchase_price'] : null;
+                    $alertQty = ($row['alert_quantity'] !== '' && $row['alert_quantity'] !== null) ? (int) $row['alert_quantity'] : 10;
+                    $barcode = !empty(trim($row['barcode'] ?? '')) ? trim($row['barcode']) : null;
+
+                    $baseUnitSlug = Str::slug($dosageUnit);
+                    $baseUnit = \App\Models\Unit::firstOrCreate(
+                        ['unit_id' => $baseUnitSlug],
+                        ['name' => $dosageUnit, 'symbol' => substr($dosageUnit, 0, 4), 'allow_decimal' => false, 'status' => 'active']
+                    );
+
+                    $med = Medicine::create([
+                        'category_id' => $row['category_id'],
+                        'product_type' => 'medicine',
+                        'name' => $name,
+                        'generic_name' => !empty(trim($row['generic_name'] ?? '')) ? trim($row['generic_name']) : null,
+                        'brand' => !empty(trim($row['brand'] ?? '')) ? trim($row['brand']) : null,
+                        'dosage_unit' => $dosageUnit,
+                        'base_unit_id' => $baseUnit->id,
+                        'primary_unit' => null,
+                        'secondary_unit' => null,
+                        'base_unit' => $dosageUnit,
+                        'primary_unit_to_secondary' => 1,
+                        'secondary_unit_to_base' => 1,
+                        'unit_price' => $unitPrice,
+                        'purchase_price' => $purchasePrice,
+                        'primary_unit_selling_price' => null,
+                        'secondary_unit_selling_price' => null,
+                        'base_unit_selling_price' => $unitPrice,
+                        'manufacturer' => !empty(trim($row['manufacturer'] ?? '')) ? trim($row['manufacturer']) : null,
+                        'barcode' => $barcode,
+                        'alert_quantity' => $alertQty,
+                        'reorder_level' => $alertQty,
+                        'has_expiry' => true,
+                        'track_batches' => true,
+                        'status' => 'active',
+                    ]);
+
+                    \App\Models\MedicinePackaging::create([
+                        'medicine_id' => $med->id,
+                        'unit_id' => $baseUnit->id,
+                        'conversion_to_base' => 1.0,
+                        'quantity_in_parent' => 1.0,
+                        'parent_packaging_id' => null,
+                        'display_name' => $dosageUnit,
+                        'barcode' => $barcode,
+                        'purchase_price' => $purchasePrice,
+                        'sale_price' => $unitPrice,
+                        'allow_purchase' => true,
+                        'allow_sale' => true,
+                        'status' => 'active',
+                    ]);
+
+                    app(\App\Services\StockLedgerService::class)->syncInventory($med->id);
+                }
+            });
+
+            $count = count($nonEmptyIndices);
+            session()->flash('message', "{$count} medicines added successfully.");
+
+
+            // Reset rows back to 3 empty rows
+            $this->rows = [];
+            for ($i = 0; $i < 3; $i++) {
+                $this->addRow();
+            }
+
+        } catch (\Exception $e) {
+            $this->addError('general', 'An error occurred while saving medicines: ' . $e->getMessage());
+        }
+    }
+
+    public function render()
+    {
+        $categories = Category::forProductType('medicine')->orderBy('name')->get();
+
+        return view('livewire.admin.bulk-add-medicine', [
+            'categories' => $categories,
+        ])->layout('layouts.app');
+    }
+}

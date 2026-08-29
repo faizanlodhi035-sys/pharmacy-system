@@ -1,0 +1,52 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Medicines Collection
+    match /medicines/{medicineId} {
+      allow read: if true; // Publicly readable for POS & inventory
+      allow write: if true; // Allow adding & updating medicines
+    }
+
+    // Medicine Batches Collection
+    match /batches/{batchId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Hold Invoices Collection
+    match /hold_invoices/{holdId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Sales Transactions Collection
+    match /sales/{saleId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Customers Collection
+    match /customers/{customerId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Default rule for all other documents
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

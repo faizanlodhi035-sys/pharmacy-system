@@ -1,0 +1,7 @@
+.tmp*
+.tmp.driveupload
+.tmp.driveupload/*
+*.tmp
+node_modules
+.git
+.vercel

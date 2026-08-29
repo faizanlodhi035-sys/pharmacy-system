@@ -1,0 +1,34 @@
+[phases.setup]
+nixPkgs = [
+  "php82",
+  "php82Packages.composer",
+  "php82Extensions.pdo_sqlite",
+  "php82Extensions.sqlite3",
+  "php82Extensions.mbstring",
+  "php82Extensions.openssl",
+  "php82Extensions.curl",
+  "php82Extensions.dom",
+  "php82Extensions.fileinfo",
+  "php82Extensions.zip",
+  "php82Extensions.bcmath",
+  "php82Extensions.gd"
+]
+
+[phases.install]
+cmds = [
+  "composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader"
+]
+
+[phases.build]
+cmds = [
+  "mkdir -p database",
+  "touch database/database.sqlite",
+  "mkdir -p storage/framework/views storage/framework/sessions storage/framework/cache storage/logs bootstrap/cache",
+  "chmod -R 777 storage bootstrap/cache database",
+  "php artisan config:clear",
+  "php artisan route:clear",
+  "php artisan view:clear"
+]
+
+[start]
+cmd = "php artisan migrate --force && php artisan db:seed --class=MigrateExistingMedicinesPackagingSeeder --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"
