@@ -14,6 +14,25 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // 1. Ensure Admin Users exist
+        \App\Models\User::updateOrCreate(
+            ['email' => 'admin@pharmacy.com'],
+            [
+                'name' => 'Muhammad Faizan Khan Lodhi',
+                'role' => 'admin',
+                'password' => 'admin123',
+            ]
+        );
+
+        \App\Models\User::updateOrCreate(
+            ['email' => 'admin@gmail.com'],
+            [
+                'name' => 'Admin User',
+                'role' => 'admin',
+                'password' => 'admin123',
+            ]
+        );
+
         $this->call([
             MigrateExistingMedicinesPackagingSeeder::class,
         ]);
