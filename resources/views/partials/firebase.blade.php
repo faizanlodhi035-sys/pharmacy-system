@@ -56,8 +56,16 @@
       }
     } catch (error) {
       console.error('Firebase Auth Error:', error);
-      alert('Firebase Google Sign-In Error: ' + error.message);
       if (btn) btn.innerHTML = originalText;
+      if (error.code === 'auth/unauthorized-domain') {
+        alert('⚠️ Firebase Authorized Domain Error:\n\nPlease add "pharmacymanagesystem.onrender.com" to your Firebase Console -> Authentication -> Settings -> Authorized Domains.');
+      } else if (error.code === 'auth/popup-blocked') {
+        alert('⚠️ Browser ne popup block kar diya hai. Please allow popups for this site.');
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        // User closed popup, do nothing
+      } else {
+        alert('Firebase Google Sign-In: ' + (error.message || error.code || 'Error'));
+      }
     }
   };
 
