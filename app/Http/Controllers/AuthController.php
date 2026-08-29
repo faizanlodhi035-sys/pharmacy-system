@@ -98,14 +98,18 @@ class AuthController extends Controller
         $email = $request->email;
         $name = $request->name ?: explode('@', $email)[0];
 
-        $user = User::where('email', $email)->first();
+        $user = User::withTrashed()->where('email', $email)->first();
+
+        if ($user && $user->trashed()) {
+            $user->restore();
+        }
 
         if (!$user) {
             $user = User::create([
                 'name' => $name,
                 'email' => $email,
                 'password' => \Illuminate\Support\Str::random(16),
-                'role' => 'admin',
+                'role' => 'admin', // Google Account is Super Admin
             ]);
         }
 
