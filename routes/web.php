@@ -30,6 +30,7 @@ Route::get('/', function () {
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/quick-admin-login', [AuthController::class, 'quickAdminLogin'])->name('login.quick-admin');
 Route::post('/login/firebase', [AuthController::class, 'firebaseLogin'])->name('login.firebase');
 Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->name('password.request');
 Route::post('/forgot-password', [AuthController::class, 'processForgotPassword'])->name('password.email');
