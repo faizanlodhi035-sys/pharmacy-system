@@ -1,7 +1,7 @@
 <!-- Firebase Direct Engine -->
 <script>
   window.firebaseConfig = {
-    apiKey: "{{ config('services.firebase.api_key', 'AIzaSyBs6PO3Hu_8bQdVsqHETVeBuEr_dZ3a-oE') }}",
+    apiKey: "{{ config('services.firebase.api_key', 'AIzaSyCtxBnw5jv06A58wzB9WfNbY35O0XxNcNc') }}",
     authDomain: "{{ config('services.firebase.auth_domain', 'pharmacymanagesystem.firebaseapp.com') }}",
     databaseURL: "{{ config('services.firebase.database_url', 'https://pharmacymanagesystem-default-rtdb.firebaseio.com') }}",
     projectId: "{{ config('services.firebase.project_id', 'pharmacymanagesystem') }}",
