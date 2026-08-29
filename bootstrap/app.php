@@ -19,6 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'livewire/*',
             'livewire-*/*',
+            'login',
+            'register',
+            'quick-admin-login',
+            'login/firebase',
+            'logout',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
