@@ -54,32 +54,6 @@ class AuthController extends Controller
         ]);
     }
 
-    // Quick Super Admin 1-Click Login
-    public function quickAdminLogin(Request $request)
-    {
-        \App\Services\FirebaseService::ensureDatabaseSeeded();
-
-        $admin = User::withTrashed()->where('role', 'admin')->first();
-
-        if (!$admin) {
-            $admin = User::create([
-                'name' => 'Muhammad Faizan Khan Lodhi',
-                'email' => 'admin@pharmacy.com',
-                'password' => 'admin123',
-                'role' => 'admin',
-            ]);
-        }
-
-        if ($admin->trashed()) {
-            $admin->restore();
-        }
-
-        Auth::login($admin);
-        $request->session()->regenerate();
-
-        return redirect('/dashboard');
-    }
-
     // Register Form Show karna
     public function showRegister()
     {
