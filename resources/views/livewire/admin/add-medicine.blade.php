@@ -399,13 +399,13 @@
                                 <label class="block text-sm font-medium text-slate-700">
                                     Dosage Form
                                 </label>
-                                <span class="text-[10px] text-slate-400 font-medium">e.g. Tablet</span>
+                                <span class="text-[10px] text-slate-400 font-medium">Auto-suggests Unit</span>
                             </div>
 
                             <input
                                 type="text"
                                 list="dosage-form-suggestions"
-                                wire:model="dosage_form"
+                                wire:model.live.debounce.200ms="dosage_form"
                                 class="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
                                 placeholder="e.g. Tablet, Capsule, Syrup, Injection"
                                 autocomplete="off"
@@ -440,13 +440,23 @@
                                 wire:model.live="initial_stock_unit"
                                 class="w-full h-10 px-2 border border-slate-200 rounded-lg bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-200"
                             >
-                                <option value="base">{{ $base_unit ?: 'Base Unit' }} (1x)</option>
-                                @if(!empty($secondary_unit))
-                                    <option value="secondary">{{ $secondary_unit }} ({{ $this->calculatedSecondaryConversion }}x Base)</option>
-                                @endif
-                                @if(!empty($primary_unit))
-                                    <option value="primary">{{ $primary_unit }} ({{ $this->calculatedPrimaryConversion }}x Base)</option>
-                                @endif
+                                <optgroup label="📦 Active Hierarchy Units">
+                                    <option value="base">{{ $base_unit ?: 'Base Unit' }} (1x Base)</option>
+                                    @if(!empty($secondary_unit))
+                                        <option value="secondary">{{ $secondary_unit }} ({{ $this->calculatedSecondaryConversion }}x Base)</option>
+                                    @endif
+                                    @if(!empty($primary_unit))
+                                        <option value="primary">{{ $primary_unit }} ({{ $this->calculatedPrimaryConversion }}x Base)</option>
+                                    @endif
+                                </optgroup>
+
+                                <optgroup label="✨ Select / Switch Unit">
+                                    @foreach($availableUnits as $unit)
+                                        @if($unit->name !== $base_unit && $unit->name !== $secondary_unit && $unit->name !== $primary_unit)
+                                            <option value="{{ $unit->name }}">{{ $unit->name }} ({{ $unit->symbol }})</option>
+                                        @endif
+                                    @endforeach
+                                </optgroup>
                             </select>
                         </div>
 

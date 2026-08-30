@@ -122,6 +122,89 @@ class AddMedicine extends Component
         $this->resetValidation('category_id');
     }
 
+    public function updatedDosageForm(string $form): void
+    {
+        $formLower = strtolower(trim($form));
+        if (empty($formLower)) {
+            return;
+        }
+
+        if (
+            str_contains($formLower, 'syrup') ||
+            str_contains($formLower, 'suspension') ||
+            str_contains($formLower, 'elixir') ||
+            str_contains($formLower, 'solution') ||
+            str_contains($formLower, 'drops') ||
+            str_contains($formLower, 'lotion') ||
+            str_contains($formLower, 'mouthwash') ||
+            str_contains($formLower, 'liquid')
+        ) {
+            $this->base_unit = 'Bottle';
+            $this->secondary_unit = '';
+            $this->primary_unit = 'Box';
+            $this->primary_unit_to_secondary = '12';
+            $this->secondary_unit_to_base = '1';
+        } elseif (
+            str_contains($formLower, 'injection') ||
+            str_contains($formLower, 'infusion') ||
+            str_contains($formLower, 'vial') ||
+            str_contains($formLower, 'ampoule')
+        ) {
+            $this->base_unit = str_contains($formLower, 'ampoule') ? 'Ampoule' : 'Vial';
+            $this->secondary_unit = '';
+            $this->primary_unit = 'Pack';
+            $this->primary_unit_to_secondary = '5';
+            $this->secondary_unit_to_base = '1';
+        } elseif (
+            str_contains($formLower, 'cream') ||
+            str_contains($formLower, 'ointment') ||
+            str_contains($formLower, 'gel')
+        ) {
+            $this->base_unit = 'Tube';
+            $this->secondary_unit = '';
+            $this->primary_unit = 'Box';
+            $this->primary_unit_to_secondary = '10';
+            $this->secondary_unit_to_base = '1';
+        } elseif (
+            str_contains($formLower, 'sachet') ||
+            str_contains($formLower, 'powder')
+        ) {
+            $this->base_unit = 'Sachet';
+            $this->secondary_unit = '';
+            $this->primary_unit = 'Box';
+            $this->primary_unit_to_secondary = '20';
+            $this->secondary_unit_to_base = '1';
+        } elseif (
+            str_contains($formLower, 'inhaler') ||
+            str_contains($formLower, 'spray')
+        ) {
+            $this->base_unit = 'Bottle';
+            $this->secondary_unit = '';
+            $this->primary_unit = 'Box';
+        } elseif (str_contains($formLower, 'capsule')) {
+            $this->base_unit = 'Capsule';
+            $this->secondary_unit = 'Strip';
+            $this->primary_unit = 'Pack';
+            $this->primary_unit_to_secondary = '10';
+            $this->secondary_unit_to_base = '10';
+        } elseif (str_contains($formLower, 'tablet')) {
+            $this->base_unit = 'Tablet';
+            $this->secondary_unit = 'Strip';
+            $this->primary_unit = 'Pack';
+            $this->primary_unit_to_secondary = '10';
+            $this->secondary_unit_to_base = '10';
+        }
+    }
+
+    public function updatedInitialStockUnit(string $unit): void
+    {
+        if ($unit !== 'base' && $unit !== 'secondary' && $unit !== 'primary') {
+            // User selected a specific unit name from dropdown, e.g. Bottle, Capsule, Tube, Vial
+            $this->base_unit = $unit;
+            $this->initial_stock_unit = 'base';
+        }
+    }
+
     public function updatedProductType(string $type): void
     {
         $this->category_id = '';
