@@ -137,32 +137,40 @@
                                     {{-- Generic Name --}}
                                     <td class="py-3 px-2">
                                         <input type="text"
+                                               list="bulk-generic-suggestions"
                                                wire:model="rows.{{ $index }}.generic_name"
                                                placeholder="e.g. Paracetamol"
+                                               autocomplete="off"
                                                class="w-full h-9 px-2.5 border border-slate-200 rounded-lg text-xs transition focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400">
                                     </td>
 
                                     {{-- Brand --}}
                                     <td class="py-3 px-2">
                                         <input type="text"
+                                               list="bulk-brand-suggestions"
                                                wire:model="rows.{{ $index }}.brand"
                                                placeholder="e.g. GSK"
+                                               autocomplete="off"
                                                class="w-full h-9 px-2.5 border border-slate-200 rounded-lg text-xs transition focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400">
                                     </td>
 
                                     {{-- Manufacturer --}}
                                     <td class="py-3 px-2">
                                         <input type="text"
+                                               list="bulk-manufacturer-suggestions"
                                                wire:model="rows.{{ $index }}.manufacturer"
                                                placeholder="e.g. GSK Pharma"
+                                               autocomplete="off"
                                                class="w-full h-9 px-2.5 border border-slate-200 rounded-lg text-xs transition focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400">
                                     </td>
 
                                     {{-- Dosage Unit --}}
                                     <td class="py-3 px-2">
                                         <input type="text"
+                                               list="bulk-dosage-unit-suggestions"
                                                wire:model="rows.{{ $index }}.dosage_unit"
                                                placeholder="Tablet"
+                                               autocomplete="off"
                                                class="w-full h-9 px-2.5 border border-slate-200 rounded-lg text-xs transition focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400">
                                     </td>
 
@@ -260,4 +268,32 @@
         </div>
 
     </div>
+
+
+    {{-- ============================================================= --}}
+    {{-- BULK ADD SUGGESTION DATALISTS --}}
+    {{-- ============================================================= --}}
+    <datalist id="bulk-brand-suggestions">
+        @foreach($suggestedBrands as $b)
+            <option value="{{ $b }}">
+        @endforeach
+    </datalist>
+
+    <datalist id="bulk-generic-suggestions">
+        @foreach($suggestedGenerics as $g)
+            <option value="{{ $g }}">
+        @endforeach
+    </datalist>
+
+    <datalist id="bulk-manufacturer-suggestions">
+        @foreach($suggestedManufacturers as $m)
+            <option value="{{ $m }}">
+        @endforeach
+    </datalist>
+
+    <datalist id="bulk-dosage-unit-suggestions">
+        @foreach($suggestedDosageUnits as $u)
+            <option value="{{ $u }}">
+        @endforeach
+    </datalist>
 </div>

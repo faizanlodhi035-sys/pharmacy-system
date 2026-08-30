@@ -28,6 +28,7 @@ class AddMedicine extends Component
     public string $barcode = '';
     public string $sku = '';
     public string $category_id = '';
+    public string $category_search = '';
     public string $supplier_id = '';
     public string $batch_number = '';
     public string $quantity = '';
@@ -68,9 +69,63 @@ class AddMedicine extends Component
     public string $supplierFilter = '';
     public string $stockFilter = '';
 
+    public function updatedCategoryId($val): void
+    {
+        if (!empty($val)) {
+            $cat = Category::find($val);
+            $this->category_search = $cat?->name ?? '';
+        } else {
+            $this->category_search = '';
+        }
+    }
+
+    public function selectCategory(int $categoryId, ?string $name = null): void
+    {
+        $this->category_id = (string) $categoryId;
+        if ($name) {
+            $this->category_search = $name;
+        } else {
+            $cat = Category::find($categoryId);
+            $this->category_search = $cat?->name ?? '';
+        }
+        $this->resetValidation('category_id');
+    }
+
+    public function clearCategory(): void
+    {
+        $this->category_id = '';
+        $this->category_search = '';
+    }
+
+    public function quickCreateCategory(string $name): void
+    {
+        $name = trim($name);
+        if (empty($name)) {
+            return;
+        }
+
+        $slug = Str::slug($name);
+        if (empty($slug)) {
+            $slug = 'cat-' . time();
+        }
+
+        $cat = Category::firstOrCreate(
+            ['slug' => $slug],
+            [
+                'name' => $name,
+                'product_type' => $this->product_type,
+            ]
+        );
+
+        $this->category_id = (string) $cat->id;
+        $this->category_search = $cat->name;
+        $this->resetValidation('category_id');
+    }
+
     public function updatedProductType(string $type): void
     {
         $this->category_id = '';
+        $this->category_search = '';
         $this->barcode = '';
         if ($type === 'general') {
             $this->primary_unit = '';
@@ -370,6 +425,7 @@ class AddMedicine extends Component
             'barcode',
             'sku',
             'category_id',
+            'category_search',
             'supplier_id',
             'batch_number',
             'quantity',
@@ -496,6 +552,68 @@ class AddMedicine extends Component
         $suppliers = Supplier::orderBy('name')->get();
         $availableUnits = Unit::active()->orderBy('name')->get();
 
+        // 1. Suggested Brands
+        $standardBrands = [
+            'GSK (GlaxoSmithKline)', 'Abbott Laboratories', 'Getz Pharma', 'The Searle Company',
+            'Sanofi-Aventis', 'Sami Pharmaceuticals', 'Hilton Pharma', 'Pfizer', 'Novartis',
+            'Bayer', 'Ferozsons Laboratories', 'CCL Pharmaceuticals', 'Bosch Pharmaceuticals',
+            'PharmEvo', 'Highnoon Laboratories', 'Platinum Pharmaceuticals', 'AGP Limited',
+            'Martin Dow Marker', 'Barrett Hodgson', 'Macter International', 'Reckitt Benckiser',
+            'Unilever', 'Procter & Gamble', 'Nestle', 'Johnson & Johnson', 'Colgate-Palmolive'
+        ];
+        $dbBrands = Medicine::whereNotNull('brand')->where('brand', '!=', '')->distinct()->pluck('brand')->toArray();
+        $suggestedBrands = collect(array_merge($standardBrands, $dbBrands))->unique()->sort()->values();
+
+        // 2. Suggested Generic Names
+        $standardGenerics = [
+            'Paracetamol', 'Ibuprofen', 'Amoxicillin', 'Amoxicillin + Clavulanic Acid (Co-Amoxiclav)',
+            'Ciprofloxacin', 'Omeprazole', 'Esomeprazole', 'Azithromycin', 'Metformin HCl',
+            'Cefixime', 'Cefradine', 'Diclofenac Sodium', 'Diclofenac Potassium',
+            'Loratadine', 'Cetirizine HCl', 'Levocetirizine', 'Montelukast Sodium',
+            'Metronidazole', 'Doxycycline', 'Fluconazole', 'Artemether + Lumefantrine',
+            'Amlodipine', 'Losartan Potassium', 'Atorvastatin', 'Rosuvastatin',
+            'Pantoprazole', 'Domperidone', 'Ondansetron', 'Tramadol HCl', 'Mefenamic Acid',
+            'Chlorpheniramine Maleate', 'Dextromethorphan', 'Salbutamol', 'Budesonide',
+            'Prednisolone', 'Hydrocortisone', 'Dexamethasone', 'Sitagliptin', 'Glimepiride',
+            'Gliclazide', 'Clopidogrel', 'Aspirin (Acetylsalicylic Acid)', 'Bisoprolol Fumarate',
+            'Valsartan', 'Spironolactone', 'Furosemide', 'Gatifloxacin', 'Moxifloxacin',
+            'Levofloxacin', 'Clarithromycin', 'Tranexamic Acid', 'Iron Polymaltose + Folic Acid',
+            'Calcium Carbonate + Vitamin D3', 'Cholecalciferol (Vitamin D3)', 'Ascorbic Acid (Vitamin C)',
+            'Zinc Sulfate', 'Oral Rehydration Salts (ORS)'
+        ];
+        $dbGenerics = Medicine::whereNotNull('generic_name')->where('generic_name', '!=', '')->distinct()->pluck('generic_name')->toArray();
+        $suggestedGenerics = collect(array_merge($standardGenerics, $dbGenerics))->unique()->sort()->values();
+
+        // 3. Suggested Manufacturers
+        $standardManufacturers = [
+            'GlaxoSmithKline (GSK) Pakistan Ltd', 'Abbott Laboratories Pakistan Ltd',
+            'Getz Pharma (Pvt) Ltd', 'The Searle Company Ltd', 'Sanofi-Aventis Pakistan Ltd',
+            'Sami Pharmaceuticals (Pvt) Ltd', 'Hilton Pharma (Pvt) Ltd', 'Pfizer Pakistan Ltd',
+            'Novartis Pharma Pakistan Ltd', 'Bayer Pakistan (Pvt) Ltd', 'Ferozsons Laboratories Ltd',
+            'CCL Pharmaceuticals (Pvt) Ltd', 'Bosch Pharmaceuticals (Pvt) Ltd', 'PharmEvo (Pvt) Ltd',
+            'Highnoon Laboratories Ltd', 'Platinum Pharmaceuticals', 'AGP Limited',
+            'Martin Dow Marker Ltd', 'Barrett Hodgson Pakistan', 'Macter International Ltd',
+            'Reckitt Benckiser Pakistan', 'Unilever Pakistan', 'Procter & Gamble Pakistan'
+        ];
+        $dbManufacturers = Medicine::whereNotNull('manufacturer')->where('manufacturer', '!=', '')->distinct()->pluck('manufacturer')->toArray();
+        $suggestedManufacturers = collect(array_merge($standardManufacturers, $dbManufacturers))->unique()->sort()->values();
+
+        // 4. Suggested Dosage Forms & Strengths
+        $suggestedDosageForms = [
+            'Tablet', 'Film-Coated Tablet', 'Dispersible Tablet', 'Chewable Tablet',
+            'Effervescent Tablet', 'Capsule', 'Softgel Capsule', 'Syrup', 'Suspension',
+            'Oral Drops', 'Elixir', 'Injection (IV/IM)', 'Infusion', 'Cream', 'Ointment',
+            'Gel', 'Lotion', 'Eye Drops', 'Ear Drops', 'Nasal Spray', 'Inhaler',
+            'Nebulizer Solution', 'Suppository', 'Sachet / Powder', 'Mouthwash'
+        ];
+
+        $suggestedStrengths = [
+            '500mg', '250mg', '125mg', '62.5mg', '1000mg (1g)', '100mg', '200mg', '400mg',
+            '50mg', '25mg', '20mg', '10mg', '5mg', '2.5mg', '1mg', '0.5mg', '20mg/ml',
+            '10mg/5ml', '100mg/5ml', '125mg/5ml', '200mg/5ml', '250mg/5ml', '400mg/5ml',
+            '10%', '5%', '2%', '1%', '0.1%', '0.05%'
+        ];
+
         return view('livewire.admin.add-medicine', [
             'medicines' => $medicines,
             'categories' => $categories,
@@ -506,6 +624,11 @@ class AddMedicine extends Component
             'totalStock' => $totalStock,
             'lowStock' => $lowStock,
             'expired' => $expired,
+            'suggestedBrands' => $suggestedBrands,
+            'suggestedGenerics' => $suggestedGenerics,
+            'suggestedManufacturers' => $suggestedManufacturers,
+            'suggestedDosageForms' => $suggestedDosageForms,
+            'suggestedStrengths' => $suggestedStrengths,
         ])->layout('layouts.app');
     }
 }

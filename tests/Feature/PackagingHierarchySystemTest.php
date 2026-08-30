@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\Category;
 use App\Models\Medicine;
 use App\Models\MedicineBatch;
@@ -23,12 +24,23 @@ use App\Services\StockLedgerService;
 
 class PackagingHierarchySystemTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected PackagingService $packagingService;
     protected StockLedgerService $stockLedgerService;
 
     protected function setUp(): void
     {
         parent::setUp();
+        \App\Models\User::firstOrCreate(
+            ['id' => 1],
+            [
+                'name' => 'Test Admin',
+                'email' => 'admin@test.com',
+                'password' => bcrypt('password'),
+                'role' => 'admin',
+            ]
+        );
         $this->packagingService = app(PackagingService::class);
         $this->stockLedgerService = app(StockLedgerService::class);
     }

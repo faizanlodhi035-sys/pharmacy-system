@@ -158,68 +158,257 @@
                         >
                     </div>
 
-                    {{-- Category --}}
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">
-                            Category <span class="text-red-500">*</span>
-                        </label>
+                    {{-- Category (Smart Searchable Auto-Suggest Dropdown & Quick Create) --}}
+                    <div 
+                        x-data="{
+                            open: false,
+                            search: @entangle('category_search').live,
+                            selectedId: @entangle('category_id').live,
+                            categories: {{ Js::from($formCategories->map(fn($c) => ['id' => (string)$c->id, 'name' => $c->name, 'type' => $c->product_type ?? 'both'])) }},
+                            get filtered() {
+                                if (!this.search || this.search.trim() === '') return this.categories;
+                                const q = this.search.toLowerCase().trim();
+                                return this.categories.filter(c => c.name.toLowerCase().includes(q));
+                            },
+                            get exactMatch() {
+                                if (!this.search) return null;
+                                const q = this.search.toLowerCase().trim();
+                                return this.categories.find(c => c.name.toLowerCase() === q);
+                            },
+                            select(cat) {
+                                this.selectedId = cat.id;
+                                this.search = cat.name;
+                                $wire.selectCategory(cat.id, cat.name);
+                                this.open = false;
+                            },
+                            clear() {
+                                this.selectedId = '';
+                                this.search = '';
+                                $wire.clearCategory();
+                                this.open = false;
+                            },
+                            createCategory() {
+                                if (this.search && this.search.trim() !== '') {
+                                    $wire.quickCreateCategory(this.search.trim());
+                                    this.open = false;
+                                }
+                            }
+                        }"
+                        class="relative"
+                        @click.outside="open = false"
+                    >
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-sm font-medium text-slate-700">
+                                Category <span class="text-red-500">*</span>
+                            </label>
+                            <span class="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
+                                <i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> Auto-Suggest
+                            </span>
+                        </div>
 
-                        <select
-                            wire:model="category_id"
-                            class="w-full h-10 px-3 border border-slate-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
+                        <div class="relative">
+                            <input
+                                type="text"
+                                x-model="search"
+                                @focus="open = true"
+                                @input="open = true"
+                                @keydown.escape="open = false"
+                                placeholder="Type or select category..."
+                                class="w-full h-10 pl-3 pr-16 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 {{ $errors->has('category_id') ? 'border-red-300 ring-1 ring-red-300' : 'border-slate-200' }}"
+                                autocomplete="off"
+                            >
+
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-2 gap-1">
+                                <template x-if="search && search.length > 0">
+                                    <button 
+                                        type="button" 
+                                        @click="clear()" 
+                                        class="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100"
+                                        title="Clear Category"
+                                    >
+                                        <i class="fa-solid fa-xmark text-xs"></i>
+                                    </button>
+                                </template>
+                                <button 
+                                    type="button" 
+                                    @click="open = !open" 
+                                    class="p-1 text-slate-400 hover:text-slate-600"
+                                    title="Toggle Dropdown"
+                                >
+                                    <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200" :class="open ? 'rotate-180' : ''"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- Hidden Input to retain exact Livewire Category binding --}}
+                        <input type="hidden" wire:model="category_id" value="{{ $category_id }}">
+
+                        {{-- Dynamic Suggestion Dropdown Panel --}}
+                        <div 
+                            x-show="open" 
+                            x-transition:enter="transition ease-out duration-150"
+                            x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                            x-transition:leave="transition ease-in duration-100"
+                            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                            x-transition:leave-end="opacity-0 translate-y-1 scale-95"
+                            class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100 py-1"
+                            style="display: none;"
                         >
-                            <option value="">
-                                Select Category
-                            </option>
+                            {{-- Header Indicator --}}
+                            <div class="px-3 py-1.5 bg-slate-50 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                <span>Suggested Categories</span>
+                                <span x-text="filtered.length + ' available'"></span>
+                            </div>
 
-                            @foreach($formCategories as $category)
-                                <option value="{{ $category->id }}">
-                                    {{ $category->name }}
-                                </option>
-                            @endforeach
-                        </select>
+                            {{-- Filtered Suggestions List --}}
+                            <template x-for="cat in filtered" :key="cat.id">
+                                <button
+                                    type="button"
+                                    @click="select(cat)"
+                                    class="w-full text-left px-3.5 py-2.5 hover:bg-emerald-50/80 flex items-center justify-between text-sm transition group"
+                                    :class="String(selectedId) === String(cat.id) ? 'bg-emerald-50 font-bold text-emerald-900' : 'text-slate-700'"
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid fa-tag text-xs text-emerald-600 group-hover:scale-110 transition-transform"></i>
+                                        <span x-text="cat.name"></span>
+                                    </div>
+                                    <template x-if="String(selectedId) === String(cat.id)">
+                                        <span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                            <i class="fa-solid fa-check text-[10px]"></i> Selected
+                                        </span>
+                                    </template>
+                                </button>
+                            </template>
+
+                            {{-- No Match / Quick Add New Category Option --}}
+                            <template x-if="filtered.length === 0 && search && search.trim() !== ''">
+                                <div class="p-3 text-center">
+                                    <p class="text-xs text-slate-500 mb-2">
+                                        No matching category found for "<span class="font-bold text-slate-700" x-text="search"></span>"
+                                    </p>
+                                    <button
+                                        type="button"
+                                        @click="createCategory()"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition"
+                                    >
+                                        <i class="fa-solid fa-plus-circle"></i>
+                                        <span>Add "<span x-text="search"></span>" as New Category</span>
+                                    </button>
+                                </div>
+                            </template>
+
+                            {{-- Quick Add Option if typed name doesn't exactly match any existing --}}
+                            <template x-if="filtered.length > 0 && search && search.trim() !== '' && !exactMatch">
+                                <div class="p-2 bg-emerald-50/50 border-t border-emerald-100">
+                                    <button
+                                        type="button"
+                                        @click="createCategory()"
+                                        class="w-full text-left px-3 py-1.5 bg-white hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-800 flex items-center justify-between transition"
+                                    >
+                                        <span class="flex items-center gap-1.5">
+                                            <i class="fa-solid fa-plus text-emerald-600"></i>
+                                            <span>Create & Select: "<span x-text="search"></span>"</span>
+                                        </span>
+                                        <span class="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded">New Category</span>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
                     </div>
 
-                    {{-- Brand --}}
+                    {{-- Brand / Company (with Auto-Suggestions) --}}
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">
-                            Brand / Company
-                        </label>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-sm font-medium text-slate-700">
+                                Brand / Company
+                            </label>
+                            <span class="text-[10px] text-slate-400 font-medium">Auto-suggest</span>
+                        </div>
 
                         <input
                             type="text"
+                            list="brand-suggestions"
                             wire:model="brand"
                             class="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                            placeholder="{{ $product_type === 'general' ? 'e.g. Unilever / Lux' : 'e.g. GSK' }}"
+                            placeholder="{{ $product_type === 'general' ? 'e.g. Unilever / Lux / Nestle' : 'e.g. GSK / Abbott / Getz' }}"
+                            autocomplete="off"
                         >
                     </div>
 
                     @if($product_type === 'medicine')
-                        {{-- Generic Name --}}
+                        {{-- Generic Name (with Auto-Suggestions) --}}
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">
-                                Generic Name
-                            </label>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-sm font-medium text-slate-700">
+                                    Generic Name
+                                </label>
+                                <span class="text-[10px] text-slate-400 font-medium">Auto-suggest</span>
+                            </div>
 
                             <input
                                 type="text"
+                                list="generic-suggestions"
                                 wire:model="generic_name"
                                 class="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                                placeholder="e.g. Paracetamol"
+                                placeholder="e.g. Paracetamol / Ibuprofen / Amoxicillin"
+                                autocomplete="off"
                             >
                         </div>
 
-                        {{-- Manufacturer --}}
+                        {{-- Manufacturer (with Auto-Suggestions) --}}
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">
-                                Manufacturer
-                            </label>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-sm font-medium text-slate-700">
+                                    Manufacturer
+                                </label>
+                                <span class="text-[10px] text-slate-400 font-medium">Auto-suggest</span>
+                            </div>
 
                             <input
                                 type="text"
+                                list="manufacturer-suggestions"
                                 wire:model="manufacturer"
                                 class="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                                placeholder="e.g. GlaxoSmithKline"
+                                placeholder="e.g. GlaxoSmithKline / Abbott / Getz Pharma"
+                                autocomplete="off"
+                            >
+                        </div>
+
+                        {{-- Strength & Dosage Form --}}
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-sm font-medium text-slate-700">
+                                    Strength
+                                </label>
+                                <span class="text-[10px] text-slate-400 font-medium">e.g. 500mg</span>
+                            </div>
+
+                            <input
+                                type="text"
+                                list="strength-suggestions"
+                                wire:model="strength"
+                                class="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
+                                placeholder="e.g. 500mg, 250mg, 10mg"
+                                autocomplete="off"
+                            >
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-sm font-medium text-slate-700">
+                                    Dosage Form
+                                </label>
+                                <span class="text-[10px] text-slate-400 font-medium">e.g. Tablet</span>
+                            </div>
+
+                            <input
+                                type="text"
+                                list="dosage-form-suggestions"
+                                wire:model="dosage_form"
+                                class="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
+                                placeholder="e.g. Tablet, Capsule, Syrup, Injection"
+                                autocomplete="off"
                             >
                         </div>
                     @endif
@@ -1226,8 +1415,38 @@
 
         </section>
 
-    </div>
+    {{-- ============================================================= --}}
+    {{-- AUTO-SUGGESTION DATALISTS --}}
+    {{-- ============================================================= --}}
+    <datalist id="brand-suggestions">
+        @foreach($suggestedBrands as $b)
+            <option value="{{ $b }}">
+        @endforeach
+    </datalist>
 
+    <datalist id="generic-suggestions">
+        @foreach($suggestedGenerics as $g)
+            <option value="{{ $g }}">
+        @endforeach
+    </datalist>
+
+    <datalist id="manufacturer-suggestions">
+        @foreach($suggestedManufacturers as $m)
+            <option value="{{ $m }}">
+        @endforeach
+    </datalist>
+
+    <datalist id="dosage-form-suggestions">
+        @foreach($suggestedDosageForms as $df)
+            <option value="{{ $df }}">
+        @endforeach
+    </datalist>
+
+    <datalist id="strength-suggestions">
+        @foreach($suggestedStrengths as $st)
+            <option value="{{ $st }}">
+        @endforeach
+    </datalist>
 
     {{-- ============================================================= --}}
     {{-- LOCAL MEDICINE SEARCH API --}}

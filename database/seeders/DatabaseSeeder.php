@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->call([
+            DemoDataSeeder::class,
             MigrateExistingMedicinesPackagingSeeder::class,
         ]);
     }

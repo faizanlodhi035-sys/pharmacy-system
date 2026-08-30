@@ -219,8 +219,44 @@ class BulkAddMedicine extends Component
     {
         $categories = Category::forProductType('medicine')->orderBy('name')->get();
 
+        $standardBrands = [
+            'GSK (GlaxoSmithKline)', 'Abbott Laboratories', 'Getz Pharma', 'The Searle Company',
+            'Sanofi-Aventis', 'Sami Pharmaceuticals', 'Hilton Pharma', 'Pfizer', 'Novartis',
+            'Bayer', 'Ferozsons Laboratories', 'CCL Pharmaceuticals', 'Bosch Pharmaceuticals',
+            'PharmEvo', 'Highnoon Laboratories', 'Platinum Pharmaceuticals', 'AGP Limited'
+        ];
+        $dbBrands = Medicine::whereNotNull('brand')->where('brand', '!=', '')->distinct()->pluck('brand')->toArray();
+        $suggestedBrands = collect(array_merge($standardBrands, $dbBrands))->unique()->sort()->values();
+
+        $standardGenerics = [
+            'Paracetamol', 'Ibuprofen', 'Amoxicillin', 'Amoxicillin + Clavulanic Acid (Co-Amoxiclav)',
+            'Ciprofloxacin', 'Omeprazole', 'Esomeprazole', 'Azithromycin', 'Metformin HCl',
+            'Cefixime', 'Cefradine', 'Diclofenac Sodium', 'Diclofenac Potassium',
+            'Loratadine', 'Cetirizine HCl', 'Levocetirizine', 'Montelukast Sodium',
+            'Metronidazole', 'Doxycycline', 'Fluconazole', 'Amlodipine', 'Losartan Potassium',
+            'Atorvastatin', 'Pantoprazole', 'Domperidone', 'Ondansetron', 'Tramadol HCl'
+        ];
+        $dbGenerics = Medicine::whereNotNull('generic_name')->where('generic_name', '!=', '')->distinct()->pluck('generic_name')->toArray();
+        $suggestedGenerics = collect(array_merge($standardGenerics, $dbGenerics))->unique()->sort()->values();
+
+        $standardManufacturers = [
+            'GlaxoSmithKline (GSK) Pakistan Ltd', 'Abbott Laboratories Pakistan Ltd',
+            'Getz Pharma (Pvt) Ltd', 'The Searle Company Ltd', 'Sanofi-Aventis Pakistan Ltd',
+            'Sami Pharmaceuticals (Pvt) Ltd', 'Hilton Pharma (Pvt) Ltd', 'Pfizer Pakistan Ltd'
+        ];
+        $dbManufacturers = Medicine::whereNotNull('manufacturer')->where('manufacturer', '!=', '')->distinct()->pluck('manufacturer')->toArray();
+        $suggestedManufacturers = collect(array_merge($standardManufacturers, $dbManufacturers))->unique()->sort()->values();
+
+        $suggestedDosageUnits = [
+            'Tablet', 'Capsule', 'Syrup', 'Suspension', 'Injection', 'Cream', 'Ointment', 'Eye Drops', 'Ear Drops', 'Sachet', 'Piece', 'Bottle'
+        ];
+
         return view('livewire.admin.bulk-add-medicine', [
             'categories' => $categories,
+            'suggestedBrands' => $suggestedBrands,
+            'suggestedGenerics' => $suggestedGenerics,
+            'suggestedManufacturers' => $suggestedManufacturers,
+            'suggestedDosageUnits' => $suggestedDosageUnits,
         ])->layout('layouts.app');
     }
 }
