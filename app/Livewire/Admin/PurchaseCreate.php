@@ -36,6 +36,12 @@ class PurchaseCreate extends Component
 
     public string $medicine_id = '';
 
+    public string $category_id = '';
+
+    public string $product_type = 'all';
+
+    public string $packaging_id = '';
+
     public string $medicineSearch = '';
 
     public string $batch_number = '';
@@ -146,11 +152,8 @@ class PurchaseCreate extends Component
     public function updatedMedicineSearch($value): void
     {
         $this->medicine_id = '';
-
         $this->purchase_price = '';
-
         $this->selling_price = '';
-
         $this->showMedicineDropdown = true;
 
         $this->resetValidation([
@@ -160,14 +163,23 @@ class PurchaseCreate extends Component
         ]);
     }
 
+    public function updatedCategoryId($value): void
+    {
+        $this->showMedicineDropdown = true;
+    }
+
+    public function updatedProductType($value): void
+    {
+        $this->category_id = '';
+        $this->showMedicineDropdown = true;
+    }
+
 
     /*
     |--------------------------------------------------------------------------
-    | SELECT MEDICINE
+    | SELECT MEDICINE & PACKAGING
     |--------------------------------------------------------------------------
     */
-
-    public string $packaging_id = '';
 
     public function updatedPackagingId($val): void
     {
@@ -175,20 +187,25 @@ class PurchaseCreate extends Component
             return;
         }
 
-        $medicine = Medicine::with('packagings.unit')->find($this->medicine_id);
+        $medicine = Medicine::with(['category', 'packagings.unit', 'baseUnit'])->find($this->medicine_id);
         if (!$medicine) {
             return;
         }
 
-        $pkg = $medicine->packagings->firstWhere('id', (int)$val);
-        if ($pkg) {
-            $this->purchase_unit = $pkg->unit?->name ?? $pkg->display_name ?? 'Unit';
-            if ($pkg->purchase_price !== null && (float)$pkg->purchase_price > 0) {
-                $this->purchase_price = (string) $pkg->purchase_price;
+        if (is_numeric($val)) {
+            $pkg = $medicine->packagings->firstWhere('id', (int)$val);
+            if ($pkg) {
+                $this->purchase_unit = $pkg->unit?->name ?? $pkg->display_name ?? 'Unit';
+                if ($pkg->purchase_price !== null && (float)$pkg->purchase_price > 0) {
+                    $this->purchase_price = (string) $pkg->purchase_price;
+                }
+                if ($pkg->sale_price !== null && (float)$pkg->sale_price > 0) {
+                    $this->selling_price = (string) $pkg->sale_price;
+                }
             }
-            if ($pkg->sale_price !== null && (float)$pkg->sale_price > 0) {
-                $this->selling_price = (string) $pkg->sale_price;
-            }
+        } else {
+            // Direct unit selection like 'Carton', 'Box', 'Piece', 'Bottle'
+            $this->purchase_unit = $val;
         }
     }
 
@@ -202,6 +219,7 @@ class PurchaseCreate extends Component
 
         $this->medicine_id = (string) $medicine->id;
         $this->medicineSearch = $medicine->name;
+        $this->category_id = (string) ($medicine->category_id ?? '');
 
         // Default to Primary/Largest purchaseable packaging, or Base Unit
         $primaryPkg = $medicine->packagings->where('allow_purchase', true)->sortByDesc('conversion_to_base')->first();
@@ -212,7 +230,7 @@ class PurchaseCreate extends Component
             $this->selling_price = $primaryPkg->sale_price !== null ? (string)$primaryPkg->sale_price : ($medicine->unit_price !== null ? (string)$medicine->unit_price : '0');
         } else {
             $this->packaging_id = '';
-            $this->purchase_unit = $medicine->base_unit ?: 'Tablet';
+            $this->purchase_unit = $medicine->base_unit ?: ($medicine->is_general ? 'Piece' : 'Tablet');
             $this->purchase_price = $medicine->purchase_price !== null ? (string)$medicine->purchase_price : '0';
             $this->selling_price = $medicine->unit_price !== null ? (string)$medicine->unit_price : '0';
         }
@@ -468,6 +486,8 @@ class PurchaseCreate extends Component
     private function resetItem(): void
     {
         $this->medicine_id = '';
+        $this->category_id = '';
+        $this->packaging_id = '';
         $this->medicineSearch = '';
         $this->purchase_unit = '';
         $this->batch_number = '';
@@ -530,61 +550,39 @@ class PurchaseCreate extends Component
 
     public function render()
     {
-        /*
-        |--------------------------------------------------------------------------
-        | SUPPLIERS
-        |--------------------------------------------------------------------------
-        */
-
         $suppliers = Supplier::query()
             ->orderBy('name')
             ->get();
 
+        $categories = Category::orderBy('product_type')->orderBy('name')->get();
+        $medicineCategories = $categories->whereIn('product_type', ['medicine', 'both']);
+        $generalCategories = $categories->whereIn('product_type', ['general', 'both']);
 
-        /*
-        |--------------------------------------------------------------------------
-        | MEDICINES
-        |--------------------------------------------------------------------------
-        |
-        | Search empty:
-        | First 20 medicines database se.
-        |
-        | Search typed:
-        | Sirf matching medicines.
-        |
-        */
-        $medicines = Medicine::with('category')
-    ->orderBy('name')
-    ->when(
-        trim($this->medicineSearch) !== '',
-        function ($query) {
-            $search = trim($this->medicineSearch);
+        $medicineQuery = Medicine::with(['category', 'packagings.unit', 'baseUnit']);
 
-            $query->where('name', 'like', '%' . $search . '%');
+        if ($this->category_id !== '') {
+            $medicineQuery->where('category_id', $this->category_id);
         }
-    )
-    ->limit(20)
-    ->get();
-    
+
+        if ($this->product_type !== 'all') {
+            $medicineQuery->productType($this->product_type);
+        }
 
         $medicineSearch = trim($this->medicineSearch);
+        if ($medicineSearch !== '') {
+            $medicineQuery->where(function ($query) use ($medicineSearch) {
+                $query->where('name', 'like', '%' . $medicineSearch . '%')
+                    ->orWhere('generic_name', 'like', '%' . $medicineSearch . '%')
+                    ->orWhere('brand', 'like', '%' . $medicineSearch . '%')
+                    ->orWhere('barcode', 'like', '%' . $medicineSearch . '%');
+            });
+        }
 
-        $medicines = Medicine::with('category')
-            ->when(
-                $medicineSearch !== '',
-                function ($query) use ($medicineSearch) {
-
-                    $query->where(
-                        'name',
-                        'like',
-                        '%' . $medicineSearch . '%'
-                    );
-                }
-            )
-            ->orderBy('name')
-            ->limit(20)
-            ->get();
-
+        $medicines = $medicineQuery->orderBy('name')->limit(40)->get();
+        $availableUnits = \App\Models\Unit::active()->orderBy('name')->get();
+        $selectedMedicine = !empty($this->medicine_id)
+            ? Medicine::with(['category', 'packagings.unit', 'baseUnit'])->find($this->medicine_id)
+            : null;
 
         /*
         |--------------------------------------------------------------------------
@@ -596,9 +594,7 @@ class PurchaseCreate extends Component
             ->latest('purchase_date')
             ->latest('id');
 
-
         if ($this->history_from !== '') {
-
             $historyQuery->whereDate(
                 'purchase_date',
                 '>=',
@@ -606,9 +602,7 @@ class PurchaseCreate extends Component
             );
         }
 
-
         if ($this->history_to !== '') {
-
             $historyQuery->whereDate(
                 'purchase_date',
                 '<=',
@@ -616,31 +610,25 @@ class PurchaseCreate extends Component
             );
         }
 
-
         if ($this->history_supplier !== '') {
-
             $historyQuery->where(
                 'supplier_id',
                 $this->history_supplier
             );
         }
 
-
-        $purchases = $historyQuery
-            ->paginate(10);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | VIEW
-        |--------------------------------------------------------------------------
-        */
+        $purchases = $historyQuery->paginate(10);
 
         return view(
             'livewire.admin.purchase-create',
             compact(
                 'suppliers',
                 'medicines',
+                'categories',
+                'medicineCategories',
+                'generalCategories',
+                'availableUnits',
+                'selectedMedicine',
                 'purchases'
             )
         )->layout('layouts.app');

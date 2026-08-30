@@ -259,11 +259,34 @@
                 $selectedMedicine = $this->selectedMedicine;
             @endphp
 
-            <div class="flex items-center justify-between mb-3">
-                <span class="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-blue-600"></span>
-                    Add Medicine / General Store Item
-                </span>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5 mr-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                        Add Item:
+                    </span>
+                    <button
+                        type="button"
+                        wire:click="$set('product_type', 'all')"
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold transition {{ $product_type === 'all' ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}"
+                    >
+                        All Items
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="$set('product_type', 'medicine')"
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 {{ $product_type === 'medicine' ? 'bg-blue-600 text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}"
+                    >
+                        <span>💊</span> Medicine
+                    </button>
+                    <button
+                        type="button"
+                        wire:click="$set('product_type', 'general')"
+                        class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1 {{ $product_type === 'general' ? 'bg-amber-600 text-white shadow-xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}"
+                    >
+                        <span>🛒</span> General Store
+                    </button>
+                </div>
 
                 @if($medicine_id)
                     <span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
@@ -293,7 +316,7 @@
                             wire:model.live.debounce.300ms="medicineSearch"
                             @focus="open = true"
                             @input="open = true"
-                            placeholder="Type medicine name to search database..."
+                            placeholder="Type product name to search database..."
                             autocomplete="off"
                             class="w-full h-11 pl-9 pr-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-800 font-medium placeholder-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"
                         />
@@ -307,10 +330,10 @@
                         x-transition:enter-end="opacity-100 translate-y-0 scale-100"
                         x-transition:leave="transition ease-in duration-100"
                         x-cloak
-                        class="absolute z-50 left-0 mt-1.5 w-full sm:w-[420px] bg-white border border-blue-200 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-black/5"
+                        class="absolute z-50 left-0 mt-1.5 w-full sm:w-[460px] bg-white border border-blue-200 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-black/5"
                     >
                         <div class="px-3 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                            <span class="text-xs font-semibold text-gray-600">Medicines from Database</span>
+                            <span class="text-xs font-semibold text-gray-600">Products from Database</span>
                             <span class="text-[10px] text-gray-400">{{ $medicines->count() }} result(s)</span>
                         </div>
 
@@ -325,23 +348,36 @@
                                 >
                                     <div class="flex items-center justify-between gap-3">
                                         <div class="min-w-0">
-                                            <div class="text-sm font-semibold text-gray-800 truncate">{{ $medicine->name }}</div>
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="text-sm font-semibold text-gray-800 truncate">{{ $medicine->name }}</span>
+                                                @if($medicine->is_general)
+                                                    <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-amber-100 text-amber-800">General</span>
+                                                @else
+                                                    <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-blue-100 text-blue-800">Medicine</span>
+                                                @endif
+                                            </div>
                                             <div class="text-[11px] text-gray-500 mt-0.5">
                                                 {{ $medicine->category?->name ?? 'General' }}
                                                 @if($medicine->generic_name)
                                                     <span class="mx-1">•</span>{{ $medicine->generic_name }}
                                                 @endif
+                                                @if($medicine->brand)
+                                                    <span class="mx-1">•</span>{{ $medicine->brand }}
+                                                @endif
                                             </div>
                                         </div>
                                         <div class="text-right shrink-0">
+                                            @if($medicine->purchase_price !== null && (float)$medicine->purchase_price > 0)
+                                                <div class="text-xs font-semibold text-emerald-600">Buy: PKR {{ number_format((float)$medicine->purchase_price, 2) }}</div>
+                                            @endif
                                             @if($medicine->unit_price !== null)
-                                                <div class="text-xs font-semibold text-blue-600">PKR {{ number_format((float)$medicine->unit_price, 2) }}</div>
+                                                <div class="text-[10px] text-gray-500">Sell: PKR {{ number_format((float)$medicine->unit_price, 2) }}</div>
                                             @endif
                                         </div>
                                     </div>
                                 </button>
                             @empty
-                                <div class="px-4 py-6 text-center text-xs text-gray-500">No matching medicine found.</div>
+                                <div class="px-4 py-6 text-center text-xs text-gray-500">No matching product found.</div>
                             @endforelse
                         </div>
                     </div>
@@ -351,20 +387,38 @@
                     @enderror
                 </div>
 
-                {{-- 2. CATEGORY (Col 2) --}}
+                {{-- 2. CATEGORY (Col 2 - Both Medicine & General Categories) --}}
                 <div class="md:col-span-2">
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Category</label>
-                    @php
-                        $selectedMedicine = $medicines->firstWhere('id', (int) $medicine_id);
-                    @endphp
-                    <div class="h-11 px-3 bg-gray-100 border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 flex items-center truncate">
-                        {{ $selectedMedicine?->category?->name ?? 'Auto' }}
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-gray-700">Category</label>
+                        <span class="text-[10px] text-blue-600 font-medium">Both Types</span>
                     </div>
+                    <select
+                        wire:model.live="category_id"
+                        class="w-full h-11 px-2.5 rounded-lg border border-gray-300 bg-white text-xs font-semibold text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none truncate"
+                    >
+                        <option value="">All Categories (Auto)</option>
+                        <optgroup label="💊 Medicine Categories">
+                            @foreach($medicineCategories as $c)
+                                <option value="{{ $c->id }}">{{ $c->name }}</option>
+                            @endforeach
+                        </optgroup>
+                        <optgroup label="🛒 General Store Categories">
+                            @foreach($generalCategories as $c)
+                                <option value="{{ $c->id }}">{{ $c->name }}</option>
+                            @endforeach
+                        </optgroup>
+                    </select>
                 </div>
 
-                {{-- 3. QTY & UNIT (Col 3) --}}
+                {{-- 3. QTY & PACKAGING UNIT (Col 3 - Medicine & General Store Packaging Units) --}}
                 <div class="md:col-span-3">
-                    <label class="block text-xs font-semibold text-gray-700 mb-1">Qty & Packaging Unit <span class="text-red-500">*</span></label>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-xs font-semibold text-gray-700">
+                            Qty & Unit <span class="text-red-500">*</span>
+                        </label>
+                        <span class="text-[10px] text-blue-600 font-medium">Packaging Unit</span>
+                    </div>
                     <div class="flex items-center gap-1.5">
                         <input
                             type="number"
@@ -372,26 +426,32 @@
                             step="any"
                             wire:model.live="quantity"
                             placeholder="1"
-                            class="w-20 h-11 px-2 border border-gray-300 rounded-lg text-center text-sm font-bold text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none shrink-0"
+                            class="w-16 sm:w-20 h-11 px-2 border border-gray-300 rounded-lg text-center text-sm font-bold text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none shrink-0"
                         />
-                        @if(!empty($medicine_id) && $selectedMedicine)
-                            <select
-                                wire:model.live="packaging_id"
-                                class="h-11 px-2 border border-gray-300 rounded-lg text-xs bg-white font-semibold text-blue-900 focus:ring-2 focus:ring-blue-100 outline-none w-full truncate"
-                            >
-                                @forelse($selectedMedicine->packagings as $pkg)
-                                    <option value="{{ $pkg->id }}">
-                                        {{ $pkg->display_name ?: $pkg->unit?->name }} ({{ (int)$pkg->conversion_to_base }}x Base)
+                        <select
+                            wire:model.live="packaging_id"
+                            class="h-11 px-2 border border-gray-300 rounded-lg text-xs bg-white font-semibold text-blue-900 focus:ring-2 focus:ring-blue-100 outline-none w-full truncate"
+                        >
+                            @if($selectedMedicine)
+                                <optgroup label="📦 Configured Packagings ({{ $selectedMedicine->is_general ? 'General' : 'Medicine' }})">
+                                    @forelse($selectedMedicine->packagings as $pkg)
+                                        <option value="{{ $pkg->id }}">
+                                            {{ $pkg->display_name ?: ($pkg->unit?->name . ' (' . (int)$pkg->conversion_to_base . 'x Base)') }}
+                                        </option>
+                                    @empty
+                                        <option value="">{{ $selectedMedicine->base_unit ?: ($selectedMedicine->is_general ? 'Piece' : 'Tablet') }} (1x Base)</option>
+                                    @endforelse
+                                </optgroup>
+                            @endif
+
+                            <optgroup label="✨ All Packaging Units (General & Medicine)">
+                                @foreach($availableUnits as $unit)
+                                    <option value="{{ $unit->name }}">
+                                        {{ $unit->name }} ({{ $unit->symbol ?: $unit->unit_id }})
                                     </option>
-                                @empty
-                                    <option value="">{{ $selectedMedicine->base_unit ?: 'Base Unit' }} (1x Base)</option>
-                                @endforelse
-                            </select>
-                        @else
-                            <div class="h-11 px-3 border border-gray-200 bg-gray-50 rounded-lg text-xs text-gray-400 font-medium flex items-center w-full">
-                                Select product first
-                            </div>
-                        @endif
+                                @endforeach
+                            </optgroup>
+                        </select>
                     </div>
                     @error('quantity')
                         <p class="mt-1 text-xs text-red-500 font-medium">{{ $message }}</p>
