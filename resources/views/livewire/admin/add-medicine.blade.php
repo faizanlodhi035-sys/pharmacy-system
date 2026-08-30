@@ -943,352 +943,513 @@
 
 
         {{-- ========================================================= --}}
-        {{-- STOCK LIST --}}
+        {{-- PRODUCTS & INVENTORY LIST (FULL-FEATURED) --}}
         {{-- ========================================================= --}}
 
-        <section class="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden" id="inventory-list-section">
 
-            {{-- Title --}}
-            <div class="px-5 py-4 border-b border-slate-100">
+            {{-- Title & Top Toolbar --}}
+            <div class="px-6 py-5 border-b border-slate-100 bg-gradient-to-r from-slate-50/80 via-white to-slate-50/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
 
                 <div class="flex items-center gap-3">
-
-                    <div class="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center">
-                        <svg class="w-5 h-5 text-emerald-600"
-                             fill="none"
-                             stroke="currentColor"
-                             viewBox="0 0 24 24">
-                            <path stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                  stroke-width="2"
-                                  d="M20 7l-8-4-8 4m16 0v10l-8 4m8-14l-8 4m0 10L4 17V7m8 14V11m0 0L4 7m8 4l8-4"/>
+                    <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-sm text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0v10l-8 4m8-14l-8 4m0 10L4 17V7m8 14V11m0 0L4 7m8 4l8-4"/>
                         </svg>
                     </div>
-
                     <div>
-                        <h2 class="text-lg font-bold text-slate-900">
-                            Products & Inventory List
-                        </h2>
-
-                        <p class="text-xs text-slate-500">
-                            Current medicine and general store inventory stock
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">
+                                Products & Inventory List
+                            </h2>
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                {{ number_format($totalMedicines) }} Total
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Manage stock, active batches, multi-unit conversions, barcode generation, and product lifecycle
                         </p>
                     </div>
+                </div>
 
+                {{-- Quick Actions --}}
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button
+                        type="button"
+                        wire:click="exportCsv"
+                        wire:loading.attr="disabled"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-sm transition active:scale-95"
+                    >
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span>Export CSV</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        onclick="window.print()"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-sm transition active:scale-95"
+                    >
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                        </svg>
+                        <span>Print Sheet</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        wire:click="$refresh"
+                        class="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition hover:rotate-180 duration-300"
+                        title="Refresh list"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                    </button>
                 </div>
 
             </div>
 
+            {{-- Flash Alert Messages --}}
+            @if(session()->has('message'))
+                <div class="mx-6 mt-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-2.5">
+                        <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-medium">{{ session('message') }}</span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-700">✕</button>
+                </div>
+            @endif
 
-            {{-- Statistics --}}
-            <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            @if(session()->has('warning'))
+                <div class="mx-6 mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-2.5">
+                        <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        <span class="font-medium">{{ session('warning') }}</span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" class="text-amber-500 hover:text-amber-700">✕</button>
+                </div>
+            @endif
+
+            @if(session()->has('error'))
+                <div class="mx-6 mt-4 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center justify-between shadow-sm">
+                    <div class="flex items-center gap-2.5">
+                        <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-medium">{{ session('error') }}</span>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700">✕</button>
+                </div>
+            @endif
+
+            {{-- Interactive Statistics Cards --}}
+            <div class="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
                 {{-- Total Products --}}
-                <div class="rounded-xl border border-emerald-100 bg-emerald-50/40 p-4">
-
-                    <div class="flex items-center gap-3">
-
-                        <div class="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                            <svg class="w-5 h-5 text-emerald-600"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 viewBox="0 0 24 24">
-                                <path stroke-linecap="round"
-                                      stroke-linejoin="round"
-                                      stroke-width="2"
-                                      d="M20 7l-8-4-8 4m16 0v10l-8 4m8-14l-8 4m0 10L4 17V7m8 14V11m0 0L4 7m8 4l8-4"/>
+                <div 
+                    wire:click="$set('productTypeFilter', 'all'); $set('stockFilter', ''); $set('expiryFilter', '');"
+                    class="cursor-pointer group rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/60 to-emerald-100/30 p-4.5 hover:shadow-md transition duration-200 active:scale-[0.99]"
+                >
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider font-semibold text-emerald-700">Total Products</p>
+                            <p class="text-2xl font-black text-slate-900 mt-1">{{ number_format($totalMedicines) }}</p>
+                            <div class="flex items-center gap-2 mt-1.5 text-[11px] font-medium text-slate-500">
+                                <span class="text-blue-700 font-semibold">{{ $totalMedicineProducts }} Medicines</span>
+                                <span>•</span>
+                                <span class="text-amber-700 font-semibold">{{ $totalGeneralProducts }} General</span>
+                            </div>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                             </svg>
                         </div>
-
-                        <div>
-                            <p class="text-xs uppercase tracking-wide text-slate-500">
-                                Total Products
-                            </p>
-
-                            <p class="text-2xl font-bold text-emerald-700">
-                                {{ number_format($totalMedicines) }}
-                            </p>
-                        </div>
-
                     </div>
-
                 </div>
 
-
-                {{-- Total Stock --}}
-                <div class="rounded-xl border border-blue-100 bg-blue-50/40 p-4">
-
-                    <div class="flex items-center gap-3">
-
-                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <svg class="w-5 h-5 text-blue-600"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 viewBox="0 0 24 24">
-                                <path stroke-linecap="round"
-                                      stroke-linejoin="round"
-                                      stroke-width="2"
-                                      d="M20 7l-8-4-8 4m16 0v10l-8 4m8-14l-8 4m0 10L4 17V7m8 14V11m0 0L4 7m8 4l8-4"/>
+                {{-- Total Stock Units & Value --}}
+                <div 
+                    wire:click="$set('stockFilter', 'in_stock'); $set('expiryFilter', '');"
+                    class="cursor-pointer group rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50/60 to-blue-100/30 p-4.5 hover:shadow-md transition duration-200 active:scale-[0.99]"
+                >
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider font-semibold text-blue-700">Total Stock (Units)</p>
+                            <p class="text-2xl font-black text-slate-900 mt-1">{{ number_format($totalStock) }}</p>
+                            <p class="text-[11px] font-medium text-blue-600 mt-1.5">
+                                Est. Value: PKR {{ number_format($totalStockValue, 0) }}
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center group-hover:scale-110 transition">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0v10l-8 4m8-14l-8 4m0 10L4 17V7m8 14V11m0 0L4 7m8 4l8-4"/>
                             </svg>
                         </div>
-
-                        <div>
-                            <p class="text-xs uppercase tracking-wide text-slate-500">
-                                Total Stock Units
-                            </p>
-
-                            <p class="text-2xl font-bold text-blue-700">
-                                {{ number_format($totalStock) }}
-                            </p>
-                        </div>
-
                     </div>
-
                 </div>
 
-
-                {{-- Low Stock --}}
-                <div class="rounded-xl border border-amber-100 bg-amber-50/50 p-4">
-
-                    <div class="flex items-center gap-3">
-
-                        <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                            <svg class="w-5 h-5 text-amber-600"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 viewBox="0 0 24 24">
-                                <path stroke-linecap="round"
-                                      stroke-linejoin="round"
-                                      stroke-width="2"
-                                      d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+                {{-- Low Stock Items --}}
+                <div 
+                    wire:click="$set('stockFilter', 'low_stock'); $set('expiryFilter', '');"
+                    class="cursor-pointer group rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50/60 to-amber-100/30 p-4.5 hover:shadow-md transition duration-200 active:scale-[0.99]"
+                >
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider font-semibold text-amber-700">Low Stock Alert</p>
+                            <p class="text-2xl font-black text-amber-600 mt-1">{{ number_format($lowStock) }}</p>
+                            <p class="text-[11px] font-medium text-amber-600 mt-1.5">
+                                Needs reordering soon
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center group-hover:scale-110 transition">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
                             </svg>
                         </div>
-
-                        <div>
-                            <p class="text-xs uppercase tracking-wide text-slate-500">
-                                Low Stock
-                            </p>
-
-                            <p class="text-2xl font-bold text-amber-700">
-                                {{ number_format($lowStock) }}
-                            </p>
-                        </div>
-
                     </div>
-
                 </div>
 
-
-                {{-- Expired --}}
-                <div class="rounded-xl border border-red-100 bg-red-50/50 p-4">
-
-                    <div class="flex items-center gap-3">
-
-                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                            <svg class="w-5 h-5 text-red-600"
-                                 fill="none"
-                                 stroke="currentColor"
-                                 viewBox="0 0 24 24">
-                                <path stroke-linecap="round"
-                                      stroke-linejoin="round"
-                                      stroke-width="2"
-                                      d="M12 9v4m0 4h.01M10.29 3.86l-7.7 13.33A2 2 0 004.32 20h15.36a2 2 0 001.73-2.81l-7.7-13.33a2 2 0 00-3.42 0z"/>
+                {{-- Expired & Near Expiry --}}
+                <div 
+                    wire:click="$set('stockFilter', 'expired'); $set('expiryFilter', '');"
+                    class="cursor-pointer group rounded-2xl border border-red-100 bg-gradient-to-br from-red-50/60 to-red-100/30 p-4.5 hover:shadow-md transition duration-200 active:scale-[0.99]"
+                >
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider font-semibold text-red-700">Expired Items</p>
+                            <p class="text-2xl font-black text-red-600 mt-1">{{ number_format($expired) }}</p>
+                            <p class="text-[11px] font-medium text-slate-500 mt-1.5">
+                                +{{ $nearExpiry }} expiring in 90 days
+                            </p>
+                        </div>
+                        <div class="w-12 h-12 rounded-2xl bg-red-500/10 text-red-600 flex items-center justify-center group-hover:scale-110 transition">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                         </div>
-
-                        <div>
-                            <p class="text-xs uppercase tracking-wide text-slate-500">
-                                Expired
-                            </p>
-
-                            <p class="text-2xl font-bold text-red-700">
-                                {{ number_format($expired) }}
-                            </p>
-                        </div>
-
                     </div>
-
                 </div>
 
             </div>
 
+            {{-- Filters & Search Toolbar --}}
+            <div class="px-6 pb-4 space-y-3">
 
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
 
-            {{-- Filters --}}
-            <div class="px-4 pb-4">
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-
-                    {{-- Search --}}
-                    <div class="relative lg:col-span-1">
-
-                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
-                             fill="none"
-                             stroke="currentColor"
-                             viewBox="0 0 24 24">
-                            <path stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                  stroke-width="2"
-                                  d="M21 21l-4.35-4.35m2.35-5.65a8 8 0 11-16 0 8 8 0 0116 0z"/>
-                        </svg>
-
+                    {{-- Search Input --}}
+                    <div class="relative lg:col-span-2">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m2.35-5.65a8 8 0 11-16 0 8 8 0 0116 0z"/>
+                            </svg>
+                        </div>
                         <input
                             type="text"
                             wire:model.live.debounce.300ms="search"
-                            placeholder="Search products..."
-                            class="w-full h-10 pl-9 pr-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
+                            placeholder="Search name, generic, barcode, batch..."
+                            class="w-full h-10 pl-9 pr-8 border border-slate-200 rounded-xl text-sm bg-slate-50/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-500 transition"
                         >
-
+                        @if($search)
+                            <button
+                                wire:click="$set('search', '')"
+                                class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                            >
+                                ✕
+                            </button>
+                        @endif
                     </div>
 
+                    {{-- Product Type --}}
+                    <div>
+                        <select
+                            wire:model.live="productTypeFilter"
+                            class="w-full h-10 px-3 border border-slate-200 rounded-xl bg-white text-sm text-slate-700 font-medium focus:ring-2 focus:ring-emerald-300 outline-none"
+                        >
+                            <option value="all">📦 All Types</option>
+                            <option value="medicine">💊 Medicines Only</option>
+                            <option value="general">🏪 General Store Only</option>
+                        </select>
+                    </div>
 
-                    {{-- Product Type Filter --}}
-                    <select
-                        wire:model.live="productTypeFilter"
-                        class="h-10 px-3 border border-slate-200 rounded-lg bg-white text-sm text-slate-600 font-medium"
-                    >
-                        <option value="all">All Product Types</option>
-                        <option value="medicine">Medicines</option>
-                        <option value="general">General Store</option>
-                    </select>
+                    {{-- Category Filter --}}
+                    <div>
+                        <select
+                            wire:model.live="categoryFilter"
+                            class="w-full h-10 px-3 border border-slate-200 rounded-xl bg-white text-sm text-slate-700 focus:ring-2 focus:ring-emerald-300 outline-none"
+                        >
+                            <option value="">📁 All Categories</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    {{-- Category --}}
-                    <select
-                        wire:model.live="categoryFilter"
-                        class="h-10 px-3 border border-slate-200 rounded-lg bg-white text-sm text-slate-600"
-                    >
-                        <option value="">All Categories</option>
+                    {{-- Supplier Filter --}}
+                    <div>
+                        <select
+                            wire:model.live="supplierFilter"
+                            class="w-full h-10 px-3 border border-slate-200 rounded-xl bg-white text-sm text-slate-700 focus:ring-2 focus:ring-emerald-300 outline-none"
+                        >
+                            <option value="">🚚 All Suppliers</option>
+                            @foreach($suppliers as $supplier)
+                                <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                        @foreach($categories as $category)
-                            <option value="{{ $category->id }}">
-                                {{ $category->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    {{-- Stock Status Filter --}}
+                    <div>
+                        <select
+                            wire:model.live="stockFilter"
+                            class="w-full h-10 px-3 border border-slate-200 rounded-xl bg-white text-sm text-slate-700 focus:ring-2 focus:ring-emerald-300 outline-none"
+                        >
+                            <option value="">⚡ All Stock Status</option>
+                            <option value="in_stock">🟢 In Stock</option>
+                            <option value="low_stock">🟡 Low Stock</option>
+                            <option value="out_of_stock">🔴 Out of Stock</option>
+                            <option value="expired">⚠️ Expired</option>
+                        </select>
+                    </div>
 
-                    {{-- Supplier --}}
-                    <select
-                        wire:model.live="supplierFilter"
-                        class="h-10 px-3 border border-slate-200 rounded-lg bg-white text-sm text-slate-600"
-                    >
-                        <option value="">All Suppliers</option>
+                </div>
 
-                        @foreach($suppliers as $supplier)
-                            <option value="{{ $supplier->id }}">
-                                {{ $supplier->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                {{-- Secondary Filters Row --}}
+                <div class="flex items-center justify-between gap-3 flex-wrap pt-1 text-xs">
 
+                    <div class="flex items-center gap-2 flex-wrap">
+                        {{-- Expiry Filter --}}
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-slate-400 font-medium">Expiry:</span>
+                            <select
+                                wire:model.live="expiryFilter"
+                                class="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-xs text-slate-700 focus:ring-1 focus:ring-emerald-300 outline-none"
+                            >
+                                <option value="">All Expiry</option>
+                                <option value="30_days">Expiring in 30 Days</option>
+                                <option value="60_days">Expiring in 60 Days</option>
+                                <option value="90_days">Expiring in 90 Days</option>
+                            </select>
+                        </div>
 
-                    {{-- Stock --}}
-                    <select
-                        wire:model.live="stockFilter"
-                        class="h-10 px-3 border border-slate-200 rounded-lg bg-white text-sm text-slate-600"
-                    >
-                        <option value="">Stock Status</option>
-                        <option value="in_stock">In Stock</option>
-                        <option value="low_stock">Low Stock</option>
-                        <option value="out_of_stock">Out of Stock</option>
-                        <option value="expired">Expired</option>
-                    </select>
+                        {{-- Per Page --}}
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-slate-400 font-medium">Show:</span>
+                            <select
+                                wire:model.live="perPage"
+                                class="h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-xs text-slate-700 focus:ring-1 focus:ring-emerald-300 outline-none"
+                            >
+                                <option value="10">10 / page</option>
+                                <option value="15">15 / page</option>
+                                <option value="25">25 / page</option>
+                                <option value="50">50 / page</option>
+                                <option value="100">100 / page</option>
+                            </select>
+                        </div>
 
+                        @if($search || $productTypeFilter !== 'all' || $categoryFilter || $supplierFilter || $stockFilter || $expiryFilter)
+                            <button
+                                type="button"
+                                wire:click="$set('search', ''); $set('productTypeFilter', 'all'); $set('categoryFilter', ''); $set('supplierFilter', ''); $set('stockFilter', ''); $set('expiryFilter', '');"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 text-xs font-semibold transition"
+                            >
+                                <span>Reset All Filters</span>
+                                <span>✕</span>
+                            </button>
+                        @endif
+                    </div>
 
-                    {{-- Reset --}}
-                    <button
-                        type="button"
-                        wire:click="$set('search', ''); $set('productTypeFilter', 'all'); $set('categoryFilter', ''); $set('supplierFilter', ''); $set('stockFilter', '');"
-                        class="h-10 px-4 rounded-lg bg-slate-100 border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-200"
-                    >
-                        Reset Filters
-                    </button>
+                    {{-- Results Indicator --}}
+                    <div class="text-slate-500 font-medium" wire:loading.remove wire:target="search, productTypeFilter, categoryFilter, supplierFilter, stockFilter, expiryFilter">
+                        Found <strong class="text-slate-800">{{ $medicines->total() }}</strong> products
+                    </div>
+                    <div class="text-emerald-600 font-semibold flex items-center gap-1" wire:loading wire:target="search, productTypeFilter, categoryFilter, supplierFilter, stockFilter, expiryFilter">
+                        <svg class="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Updating results...</span>
+                    </div>
 
                 </div>
 
             </div>
 
+            {{-- Bulk Actions Floating Bar --}}
+            @if(count($selectedMedicines) > 0)
+                <div class="mx-6 mb-3 px-4 py-3 bg-indigo-900 text-white rounded-xl flex items-center justify-between shadow-lg animate-fadeIn flex-wrap gap-3">
+                    <div class="flex items-center gap-2 text-sm font-semibold">
+                        <span class="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-black">
+                            {{ count($selectedMedicines) }}
+                        </span>
+                        <span>Products Selected</span>
+                    </div>
+
+                    <div class="flex items-center gap-2 flex-wrap">
+                        {{-- Bulk Status --}}
+                        <div class="inline-flex rounded-lg shadow-sm">
+                            <button
+                                type="button"
+                                wire:click="bulkUpdateStatus('active')"
+                                class="px-3 py-1.5 rounded-l-lg bg-indigo-800 hover:bg-indigo-700 text-xs font-semibold text-white border-r border-indigo-700"
+                            >
+                                Set Active
+                            </button>
+                            <button
+                                type="button"
+                                wire:click="bulkUpdateStatus('inactive')"
+                                class="px-3 py-1.5 rounded-r-lg bg-indigo-800 hover:bg-indigo-700 text-xs font-semibold text-white"
+                            >
+                                Set Inactive
+                            </button>
+                        </div>
+
+                        {{-- Bulk Delete Button --}}
+                        <button
+                            type="button"
+                            wire:click="confirmBulkDelete"
+                            class="px-3.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-xs font-bold text-white flex items-center gap-1.5 shadow-sm transition active:scale-95"
+                        >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                            <span>Delete Selected</span>
+                        </button>
+
+                        {{-- Deselect --}}
+                        <button
+                            type="button"
+                            wire:click="$set('selectedMedicines', []); $set('selectAll', false);"
+                            class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-semibold text-slate-200"
+                        >
+                            Deselect All
+                        </button>
+                    </div>
+                </div>
+            @endif
 
             {{-- ===================================================== --}}
-            {{-- TABLE --}}
+            {{-- DATA TABLE --}}
             {{-- ===================================================== --}}
-
             <div class="overflow-x-auto">
-
-                <table class="w-full text-sm">
-
+                <table class="w-full text-left text-sm">
                     <thead>
-                        <tr class="bg-slate-50 border-y border-slate-100 text-slate-600">
+                        <tr class="bg-slate-50 border-y border-slate-200/80 text-xs font-bold uppercase tracking-wider text-slate-600">
 
-                            <th class="px-4 py-3 text-left font-semibold">
-                                #
+                            {{-- Select All Checkbox --}}
+                            <th class="px-4 py-3.5 w-10">
+                                <input
+                                    type="checkbox"
+                                    wire:model.live="selectAll"
+                                    class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
+                                >
                             </th>
 
-                            <th class="px-4 py-3 text-left font-semibold">
-                                Type
+                            <th class="px-3 py-3.5 w-12 text-slate-400">#</th>
+
+                            <th class="px-3 py-3.5">Type</th>
+
+                            {{-- Product Name (Sortable) --}}
+                            <th 
+                                wire:click="sortBy('name')" 
+                                class="px-4 py-3.5 cursor-pointer hover:bg-slate-100/80 transition select-none group"
+                            >
+                                <div class="flex items-center gap-1">
+                                    <span>Product Name & Details</span>
+                                    <span class="text-slate-400 group-hover:text-slate-700">
+                                        @if($sortField === 'name')
+                                            {{ $sortDirection === 'asc' ? '↑' : '↓' }}
+                                        @else
+                                            ↕
+                                        @endif
+                                    </span>
+                                </div>
                             </th>
 
-                            <th class="px-4 py-3 text-left font-semibold">
-                                Product Name
+                            {{-- Category (Sortable) --}}
+                            <th 
+                                wire:click="sortBy('category')" 
+                                class="px-4 py-3.5 cursor-pointer hover:bg-slate-100/80 transition select-none group"
+                            >
+                                <div class="flex items-center gap-1">
+                                    <span>Category</span>
+                                    <span class="text-slate-400 group-hover:text-slate-700">
+                                        @if($sortField === 'category')
+                                            {{ $sortDirection === 'asc' ? '↑' : '↓' }}
+                                        @else
+                                            ↕
+                                        @endif
+                                    </span>
+                                </div>
                             </th>
 
-                            <th class="px-4 py-3 text-left font-semibold">
-                                Category
+                            <th class="px-4 py-3.5">Batches</th>
+
+                            <th class="px-4 py-3.5">Total Stock</th>
+
+                            {{-- Selling Price (Sortable) --}}
+                            <th 
+                                wire:click="sortBy('unit_price')" 
+                                class="px-4 py-3.5 cursor-pointer hover:bg-slate-100/80 transition select-none group"
+                            >
+                                <div class="flex items-center gap-1">
+                                    <span>Selling Price</span>
+                                    <span class="text-slate-400 group-hover:text-slate-700">
+                                        @if($sortField === 'unit_price')
+                                            {{ $sortDirection === 'asc' ? '↑' : '↓' }}
+                                        @else
+                                            ↕
+                                        @endif
+                                    </span>
+                                </div>
                             </th>
 
-                            <th class="px-4 py-3 text-left font-semibold">
-                                Batch Details
-                            </th>
+                            <th class="px-4 py-3.5">Expiry / Batch Date</th>
 
-                            <th class="px-4 py-3 text-left font-semibold">
-                                Total Stock
-                            </th>
+                            <th class="px-4 py-3.5">Status</th>
 
-                            <th class="px-4 py-3 text-left font-semibold">
-                                Selling Price
-                            </th>
-
-                            <th class="px-4 py-3 text-left font-semibold">
-                                Expiry Date
-                            </th>
-
-                            <th class="px-4 py-3 text-left font-semibold">
-                                Status
-                            </th>
+                            <th class="px-4 py-3.5 text-center font-bold text-slate-700">Actions</th>
 
                         </tr>
                     </thead>
 
-
-                    <tbody class="divide-y divide-slate-100">
-
+                    <tbody class="divide-y divide-slate-100 bg-white">
                         @forelse($medicines as $index => $medicine)
-
                             @php
                                 $stock = $medicine->batches->sum('quantity');
-
-                                $alert = $medicine->alert_quantity ?? 10;
+                                $alert = $medicine->reorder_level ?? $medicine->alert_quantity ?? 10;
+                                $batchesCount = $medicine->batches->count();
+                                $isExpanded = in_array($medicine->id, $expandedRows);
+                                $isSelected = in_array((string)$medicine->id, $selectedMedicines);
 
                                 $activeExpiredBatch = $medicine->batches
                                     ->where('quantity', '>', 0)
                                     ->first(function ($batch) {
-                                        return $batch->expiry_date &&
-                                            $batch->expiry_date->isPast();
+                                        return $batch->expiry_date && $batch->expiry_date->isPast();
                                     });
 
                                 $nearestBatch = $medicine->batches
+                                    ->where('quantity', '>', 0)
                                     ->sortBy('expiry_date')
                                     ->first();
 
-                                $displayBatch = $nearestBatch;
+                                $displayBatch = $activeExpiredBatch ?: ($nearestBatch ?: $medicine->batches->first());
 
-                                if ($activeExpiredBatch) {
-                                    $displayBatch = $activeExpiredBatch;
-                                }
-
+                                // Status logic
                                 $status = 'In Stock';
                                 $statusClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
 
-                                if ($activeExpiredBatch) {
+                                if ($medicine->status === 'inactive') {
+                                    $status = 'Inactive';
+                                    $statusClass = 'bg-slate-100 text-slate-600 border-slate-200';
+                                } elseif ($activeExpiredBatch) {
                                     $status = 'Expired';
                                     $statusClass = 'bg-red-50 text-red-700 border-red-200';
                                 } elseif ($stock <= 0) {
@@ -1300,159 +1461,941 @@
                                 }
                             @endphp
 
-                            <tr class="hover:bg-slate-50/70 transition">
+                            <tr class="hover:bg-slate-50/80 transition group {{ $isSelected ? 'bg-indigo-50/40' : '' }}">
 
-                                <td class="px-4 py-4 text-slate-500">
-                                    {{ $index + 1 }}
-                                </td>
-
+                                {{-- Selection Checkbox --}}
                                 <td class="px-4 py-4">
-                                    @if($medicine->is_general)
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                                            <i class="fa-solid fa-store text-[10px]"></i> General
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
-                                            <i class="fa-solid fa-capsules text-[10px]"></i> Medicine
-                                        </span>
-                                    @endif
-                                </td>
-
-
-                                <td class="px-4 py-4">
-
-                                    <div class="font-semibold text-slate-800">
-                                        {{ $medicine->name }}
-                                    </div>
-
-                                    @if($medicine->generic_name)
-                                        <div class="text-xs text-slate-400 mt-0.5">
-                                            {{ $medicine->generic_name }}
-                                        </div>
-                                    @endif
-
-                                </td>
-
-
-                                <td class="px-4 py-4 text-slate-600">
-                                    {{ $medicine->category?->name ?? '—' }}
-                                </td>
-
-
-                                <td class="px-4 py-4">
-
-                                    @if($displayBatch)
-
-                                        <div class="font-medium text-slate-700">
-                                            {{ $displayBatch->batch_number }}
-                                        </div>
-
-                                        @if($displayBatch->expiry_date)
-                                            <div class="text-xs text-slate-400">
-                                                Exp:
-                                                {{ $displayBatch->expiry_date->format('Y-m-d') }}
-                                            </div>
-                                        @endif
-
-                                        @if($displayBatch->supplier)
-                                            <div class="text-xs text-slate-400">
-                                                {{ $displayBatch->supplier->name }}
-                                            </div>
-                                        @endif
-
-                                    @else
-
-                                        <span class="text-slate-400">
-                                            No batch
-                                        </span>
-
-                                    @endif
-
-                                </td>
-
-
-                                <td class="px-4 py-4">
-                                    <div
-                                        @class([
-                                            'font-bold text-sm',
-                                            'text-emerald-600' => $stock > $alert,
-                                            'text-amber-600' => $stock > 0 && $stock <= $alert,
-                                            'text-red-600' => $stock <= 0,
-                                        ])
+                                    <input
+                                        type="checkbox"
+                                        value="{{ $medicine->id }}"
+                                        wire:model.live="selectedMedicines"
+                                        class="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer"
                                     >
+                                </td>
+
+                                {{-- Index --}}
+                                <td class="px-3 py-4 text-xs font-mono text-slate-400">
+                                    {{ $medicines->firstItem() + $index }}
+                                </td>
+
+                                {{-- Product Type --}}
+                                <td class="px-3 py-4">
+                                    @if($medicine->is_general)
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
+                                            <span>🏪</span> General
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-blue-50 text-blue-800 border border-blue-200/80 shadow-2xs">
+                                            <span>💊</span> Medicine
+                                        </span>
+                                    @endif
+                                </td>
+
+                                {{-- Product Name & Generic Details --}}
+                                <td class="px-4 py-4">
+                                    <div class="flex items-start gap-2">
+                                        <div>
+                                            <div class="font-bold text-slate-900 group-hover:text-emerald-700 transition">
+                                                {{ $medicine->name }}
+                                            </div>
+
+                                            @if($medicine->generic_name)
+                                                <div class="text-xs font-medium text-slate-500 mt-0.5">
+                                                    {{ $medicine->generic_name }}
+                                                </div>
+                                            @endif
+
+                                            <div class="flex items-center gap-2 mt-1 text-[11px] text-slate-400 flex-wrap">
+                                                @if($medicine->brand)
+                                                    <span class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-medium">
+                                                        🏷️ {{ $medicine->brand }}
+                                                    </span>
+                                                @endif
+                                                @if($medicine->strength)
+                                                    <span class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-medium">
+                                                        {{ $medicine->strength }}
+                                                    </span>
+                                                @endif
+                                                @if($medicine->dosage_form)
+                                                    <span class="text-slate-500 font-medium">
+                                                        {{ $medicine->dosage_form }}
+                                                    </span>
+                                                @endif
+                                                @if($medicine->barcode)
+                                                    <span class="font-mono text-slate-400 text-[10px] bg-slate-50 px-1 rounded border border-slate-200">
+                                                        {{ $medicine->barcode }}
+                                                    </span>
+                                                @endif
+                                            </div>
+
+                                            {{-- Packaging Hierarchy Chips --}}
+                                            @if($medicine->packagings->count() > 1)
+                                                <div class="flex flex-wrap gap-1 mt-1.5">
+                                                    @foreach($medicine->packagings as $pkg)
+                                                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                                            {{ $pkg->display_name ?: $pkg->unit?->name }} ({{ (int)$pkg->conversion_to_base }}x)
+                                                        </span>
+                                                    @endforeach
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </td>
+
+                                {{-- Category --}}
+                                <td class="px-4 py-4 text-slate-700 font-medium text-xs">
+                                    <span class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200/80">
+                                        {{ $medicine->category?->name ?? '—' }}
+                                    </span>
+                                </td>
+
+                                {{-- Batches Details & Expand Toggle --}}
+                                <td class="px-4 py-4">
+                                    <button
+                                        type="button"
+                                        wire:click="toggleExpandRow({{ $medicine->id }})"
+                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition {{ $isExpanded ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200' }}"
+                                        title="Click to view/hide batch list"
+                                    >
+                                        <span>{{ $batchesCount }} {{ Str::plural('Batch', $batchesCount) }}</span>
+                                        <span>{{ $isExpanded ? '▲' : '▼' }}</span>
+                                    </button>
+
+                                    @if($displayBatch && !$isExpanded)
+                                        <div class="text-[11px] font-mono text-slate-500 mt-1">
+                                            Latest: <strong>{{ $displayBatch->batch_number }}</strong>
+                                        </div>
+                                    @endif
+                                </td>
+
+                                {{-- Total Stock & Breakdown --}}
+                                <td class="px-4 py-4">
+                                    <div @class([
+                                        'font-extrabold text-sm',
+                                        'text-emerald-600' => $stock > $alert,
+                                        'text-amber-600' => $stock > 0 && $stock <= $alert,
+                                        'text-red-600' => $stock <= 0,
+                                    ])>
                                         {{ number_format($stock) }} <span class="text-xs font-normal text-slate-500">{{ $medicine->base_unit ?: 'Base Units' }}</span>
                                     </div>
+
                                     @if($stock > 0 && $medicine->packagings->count() > 1)
-                                        <div class="text-[11px] font-medium text-slate-500 mt-0.5 max-w-xs">
+                                        <div class="text-[11px] font-semibold text-emerald-700 mt-0.5">
                                             {{ $medicine->formatStockInUnits($stock) }}
                                         </div>
                                     @endif
                                 </td>
 
-
-                                <td class="px-4 py-4 text-slate-600">
-
-                                    @if($displayBatch)
-                                        PKR {{ number_format($displayBatch->selling_price, 2) }}
-                                    @else
-                                        —
-                                    @endif
-
-                                </td>
-
-
-                                <td class="px-4 py-4 text-slate-600">
-
-                                    @if($displayBatch?->expiry_date)
-                                        {{ $displayBatch->expiry_date->format('Y-m-d') }}
-                                    @else
-                                        —
-                                    @endif
-
-                                </td>
-
-
+                                {{-- Selling Price --}}
                                 <td class="px-4 py-4">
+                                    <div class="font-black text-sm text-slate-900">
+                                        PKR {{ number_format($medicine->selling_price, 2) }}
+                                    </div>
+                                    @if($medicine->purchase_price > 0)
+                                        <div class="text-[11px] text-slate-400">
+                                            Cost: PKR {{ number_format($medicine->purchase_price, 2) }}
+                                        </div>
+                                    @endif
+                                </td>
 
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md border text-xs font-semibold {{ $statusClass }}">
+                                {{-- Expiry Date --}}
+                                <td class="px-4 py-4 text-xs">
+                                    @if($displayBatch?->expiry_date)
+                                        <div class="font-medium text-slate-700">
+                                            {{ $displayBatch->expiry_date->format('Y-m-d') }}
+                                        </div>
+                                        @php
+                                            $daysLeft = now()->diffInDays($displayBatch->expiry_date, false);
+                                        @endphp
+                                        @if($daysLeft < 0)
+                                            <span class="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded border border-red-200">
+                                                Expired {{ abs((int)$daysLeft) }}d ago
+                                            </span>
+                                        @elseif($daysLeft <= 90)
+                                            <span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                                In {{ (int)$daysLeft }} days
+                                            </span>
+                                        @endif
+                                    @else
+                                        <span class="text-slate-400">N/A</span>
+                                    @endif
+                                </td>
+
+                                {{-- Status Pill --}}
+                                <td class="px-4 py-4">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full border text-xs font-bold {{ $statusClass }}">
                                         {{ $status }}
                                     </span>
+                                </td>
 
+                                {{-- Actions Group --}}
+                                <td class="px-4 py-4 text-center">
+                                    <div class="inline-flex items-center justify-center gap-1">
+
+                                        {{-- Quick View --}}
+                                        <button
+                                            type="button"
+                                            wire:click="openViewModal({{ $medicine->id }})"
+                                            class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition"
+                                            title="View Details"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                        </button>
+
+                                        {{-- Edit Product --}}
+                                        <button
+                                            type="button"
+                                            wire:click="openEditModal({{ $medicine->id }})"
+                                            class="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center transition"
+                                            title="Edit Product"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                            </svg>
+                                        </button>
+
+                                        {{-- Add Batch / Restock --}}
+                                        <button
+                                            type="button"
+                                            wire:click="openAddBatchModal({{ $medicine->id }})"
+                                            class="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center justify-center transition"
+                                            title="Add New Batch / Restock"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                            </svg>
+                                        </button>
+
+                                        {{-- Barcode Label --}}
+                                        <button
+                                            type="button"
+                                            wire:click="openBarcodeModal({{ $medicine->id }})"
+                                            class="w-8 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 flex items-center justify-center transition"
+                                            title="Generate & Print Barcode Label"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                                            </svg>
+                                        </button>
+
+                                        {{-- Delete Product --}}
+                                        <button
+                                            type="button"
+                                            wire:click="confirmDelete({{ $medicine->id }})"
+                                            class="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center justify-center transition"
+                                            title="Delete Product"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                        </button>
+
+                                    </div>
                                 </td>
 
                             </tr>
+
+                            {{-- Inline Expandable Batch Table --}}
+                            @if($isExpanded)
+                                <tr class="bg-slate-50/90 border-y border-slate-200">
+                                    <td colspan="11" class="p-4 pl-12">
+                                        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-sm font-bold text-slate-800">
+                                                        Active Batches for {{ $medicine->name }}
+                                                    </span>
+                                                    <span class="text-xs text-slate-500">
+                                                        ({{ $medicine->batches->count() }} batches recorded)
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    wire:click="openAddBatchModal({{ $medicine->id }})"
+                                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition"
+                                                >
+                                                    + Add Batch to {{ $medicine->name }}
+                                                </button>
+                                            </div>
+
+                                            <div class="overflow-x-auto">
+                                                <table class="w-full text-xs text-left">
+                                                    <thead>
+                                                        <tr class="bg-slate-100 text-slate-600 font-semibold uppercase tracking-wider">
+                                                            <th class="px-3 py-2">Batch #</th>
+                                                            <th class="px-3 py-2">Supplier</th>
+                                                            <th class="px-3 py-2">Expiry Date</th>
+                                                            <th class="px-3 py-2">Quantity</th>
+                                                            <th class="px-3 py-2">Purchase Price</th>
+                                                            <th class="px-3 py-2">Selling Price</th>
+                                                            <th class="px-3 py-2">Status</th>
+                                                            <th class="px-3 py-2 text-right">Actions</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody class="divide-y divide-slate-100">
+                                                        @forelse($medicine->batches as $b)
+                                                            <tr class="hover:bg-slate-50">
+                                                                <td class="px-3 py-2 font-mono font-bold text-slate-800">
+                                                                    {{ $b->batch_number }}
+                                                                </td>
+                                                                <td class="px-3 py-2 text-slate-600">
+                                                                    {{ $b->supplier?->name ?? '—' }}
+                                                                </td>
+                                                                <td class="px-3 py-2">
+                                                                    @if($b->expiry_date)
+                                                                        <span class="{{ $b->expiry_date->isPast() ? 'text-red-600 font-bold' : 'text-slate-700' }}">
+                                                                            {{ $b->expiry_date->format('Y-m-d') }}
+                                                                        </span>
+                                                                    @else
+                                                                        —
+                                                                    @endif
+                                                                </td>
+                                                                <td class="px-3 py-2 font-bold {{ $b->quantity <= 0 ? 'text-red-600' : 'text-slate-900' }}">
+                                                                    {{ number_format($b->quantity) }} {{ $medicine->base_unit }}
+                                                                </td>
+                                                                <td class="px-3 py-2 text-slate-600">
+                                                                    PKR {{ number_format($b->purchase_price, 2) }}
+                                                                </td>
+                                                                <td class="px-3 py-2 font-semibold text-slate-800">
+                                                                    PKR {{ number_format($b->selling_price, 2) }}
+                                                                </td>
+                                                                <td class="px-3 py-2">
+                                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold {{ $b->quantity > 0 ? ($b->expiry_date && $b->expiry_date->isPast() ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700') : 'bg-slate-100 text-slate-500' }}">
+                                                                        {{ $b->quantity > 0 ? ($b->expiry_date && $b->expiry_date->isPast() ? 'Expired' : 'Active') : 'Depleted' }}
+                                                                    </span>
+                                                                </td>
+                                                                <td class="px-3 py-2 text-right">
+                                                                    <div class="inline-flex items-center gap-1">
+                                                                        <button
+                                                                            type="button"
+                                                                            wire:click="openAdjustStockModal({{ $b->id }})"
+                                                                            class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold"
+                                                                            title="Adjust Batch Stock"
+                                                                        >
+                                                                            ⚖️ Adjust
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            wire:click="deleteBatch({{ $b->id }})"
+                                                                            wire:confirm="Are you sure you want to delete this batch ({{ $b->batch_number }})?"
+                                                                            class="px-2 py-1 rounded bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-semibold"
+                                                                            title="Delete Batch"
+                                                                        >
+                                                                            🗑️ Delete
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        @empty
+                                                            <tr>
+                                                                <td colspan="8" class="px-3 py-4 text-center text-slate-400">
+                                                                    No batches found for this product.
+                                                                </td>
+                                                            </tr>
+                                                        @endforelse
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endif
 
                         @empty
-
                             <tr>
-                                <td colspan="8" class="px-4 py-12 text-center">
-
-                                    <div class="text-slate-400">
-                                        No medicines found.
+                                <td colspan="11" class="px-4 py-16 text-center">
+                                    <div class="max-w-md mx-auto space-y-3">
+                                        <div class="w-16 h-16 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-2xl">
+                                            🔍
+                                        </div>
+                                        <h3 class="text-base font-bold text-slate-800">No products found</h3>
+                                        <p class="text-xs text-slate-500">
+                                            No products matched your active filters or search term. Try resetting your search or adjusting filters above.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            wire:click="$set('search', ''); $set('productTypeFilter', 'all'); $set('categoryFilter', ''); $set('supplierFilter', ''); $set('stockFilter', ''); $set('expiryFilter', '');"
+                                            class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition"
+                                        >
+                                            Reset All Filters
+                                        </button>
                                     </div>
-
                                 </td>
                             </tr>
-
                         @endforelse
-
                     </tbody>
-
                 </table>
-
             </div>
 
+            {{-- Pagination & Footer --}}
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="text-xs text-slate-500">
+                    Showing <span class="font-bold text-slate-700">{{ $medicines->firstItem() ?? 0 }}</span>
+                    to <span class="font-bold text-slate-700">{{ $medicines->lastItem() ?? 0 }}</span>
+                    of <span class="font-bold text-slate-700">{{ $medicines->total() }}</span> products
+                </div>
 
-            {{-- Footer --}}
-            <div class="px-4 py-4 border-t border-slate-100 text-sm text-slate-500">
-                Showing
-                <span class="font-semibold text-slate-700">
-                    {{ $medicines->count() }}
-                </span>
-                medicine entries
+                <div>
+                    {{ $medicines->links() }}
+                </div>
             </div>
 
         </section>
+
+        {{-- ========================================================= --}}
+        {{-- MODAL 1: QUICK VIEW PRODUCT DETAILS --}}
+        {{-- ========================================================= --}}
+        @if($showViewModal && $viewMedicine)
+            <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-slate-200">
+                    
+                    {{-- Modal Header --}}
+                    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+                                💊
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">{{ $viewMedicine->name }}</h3>
+                                <p class="text-xs text-slate-500">{{ $viewMedicine->generic_name ?: 'General Inventory Item' }} • {{ $viewMedicine->category?->name ?? 'Uncategorized' }}</p>
+                            </div>
+                        </div>
+                        <button type="button" wire:click="closeViewModal" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">✕</button>
+                    </div>
+
+                    {{-- Modal Body --}}
+                    <div class="p-6 space-y-6">
+
+                        {{-- Details Grid --}}
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Product Type</span>
+                                <div class="text-sm font-bold text-slate-800 capitalize">{{ $viewMedicine->product_type }}</div>
+                            </div>
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Base Unit</span>
+                                <div class="text-sm font-bold text-slate-800">{{ $viewMedicine->base_unit }}</div>
+                            </div>
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Total Stock</span>
+                                <div class="text-sm font-bold text-emerald-700">{{ number_format($viewMedicine->batches->sum('quantity')) }} {{ $viewMedicine->base_unit }}</div>
+                            </div>
+                            <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Barcode</span>
+                                <div class="text-sm font-mono font-bold text-slate-800">{{ $viewMedicine->barcode ?: '—' }}</div>
+                            </div>
+                        </div>
+
+                        {{-- Packaging Breakdown --}}
+                        <div>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Packaging & Multi-Unit Hierarchy</h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                @forelse($viewMedicine->packagings as $pkg)
+                                    <div class="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100">
+                                        <div class="font-bold text-xs text-emerald-900">{{ $pkg->display_name ?: $pkg->unit?->name }}</div>
+                                        <div class="text-[11px] text-slate-600 mt-0.5">1x = {{ (int)$pkg->conversion_to_base }} {{ $viewMedicine->base_unit }}s</div>
+                                        <div class="text-xs font-semibold text-emerald-700 mt-1">Sale: PKR {{ number_format($pkg->sale_price, 2) }}</div>
+                                    </div>
+                                @empty
+                                    <div class="text-xs text-slate-400">Single Base Unit ({{ $viewMedicine->base_unit }})</div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        {{-- Active Batches --}}
+                        <div>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Active Batches</h4>
+                            <div class="border border-slate-200 rounded-xl overflow-hidden">
+                                <table class="w-full text-xs text-left">
+                                    <thead class="bg-slate-50 font-semibold text-slate-600">
+                                        <tr>
+                                            <th class="px-3 py-2">Batch #</th>
+                                            <th class="px-3 py-2">Supplier</th>
+                                            <th class="px-3 py-2">Expiry</th>
+                                            <th class="px-3 py-2">Stock</th>
+                                            <th class="px-3 py-2">Selling Price</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        @forelse($viewMedicine->batches as $b)
+                                            <tr>
+                                                <td class="px-3 py-2 font-mono font-bold">{{ $b->batch_number }}</td>
+                                                <td class="px-3 py-2 text-slate-600">{{ $b->supplier?->name ?? '—' }}</td>
+                                                <td class="px-3 py-2">{{ $b->expiry_date?->format('Y-m-d') ?? '—' }}</td>
+                                                <td class="px-3 py-2 font-bold">{{ number_format($b->quantity) }}</td>
+                                                <td class="px-3 py-2 font-semibold">PKR {{ number_format($b->selling_price, 2) }}</td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="5" class="px-3 py-4 text-center text-slate-400">No active batches</td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="px-6 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+                        <button type="button" wire:click="closeViewModal" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold transition">Close</button>
+                    </div>
+
+                </div>
+            </div>
+        @endif
+
+        {{-- ========================================================= --}}
+        {{-- MODAL 2: EDIT MEDICINE MODAL --}}
+        {{-- ========================================================= --}}
+        @if($showEditModal)
+            <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-slate-200">
+                    
+                    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-white">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg">
+                                ✏️
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">Edit Product Information</h3>
+                                <p class="text-xs text-slate-500">Update details, pricing, and reorder levels</p>
+                            </div>
+                        </div>
+                        <button type="button" wire:click="closeEditModal" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">✕</button>
+                    </div>
+
+                    <form wire:submit="updateMedicine" class="p-6 space-y-4">
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Product Name *</label>
+                                <input type="text" wire:model="edit_name" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-300 outline-none" required>
+                                @error('edit_name') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            </div>
+
+                            @if($edit_product_type === 'medicine')
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Generic Formula</label>
+                                    <input type="text" wire:model="edit_generic_name" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-300 outline-none">
+                                </div>
+                            @else
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Brand / Company</label>
+                                    <input type="text" wire:model="edit_brand" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-300 outline-none">
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Category *</label>
+                                <select wire:model="edit_category_id" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-300 outline-none" required>
+                                    <option value="">Select Category</option>
+                                    @foreach($categories as $cat)
+                                        <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('edit_category_id') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Selling Price (Base Unit) *</label>
+                                <input type="number" step="0.01" wire:model="edit_unit_price" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-300 outline-none" required>
+                                @error('edit_unit_price') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Purchase Cost</label>
+                                <input type="number" step="0.01" wire:model="edit_purchase_price" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-300 outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Alert Quantity</label>
+                                <input type="number" wire:model="edit_alert_quantity" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-300 outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Status</label>
+                                <select wire:model="edit_status" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-300 outline-none">
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Barcode</label>
+                                <input type="text" wire:model="edit_barcode" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-blue-300 outline-none">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">SKU</label>
+                                <input type="text" wire:model="edit_sku" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-blue-300 outline-none">
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-100 flex justify-end gap-2">
+                            <button type="button" wire:click="closeEditModal" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">Cancel</button>
+                            <button type="submit" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition">Update Product</button>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+        @endif
+
+        {{-- ========================================================= --}}
+        {{-- MODAL 3: ADD NEW BATCH / RESTOCK --}}
+        {{-- ========================================================= --}}
+        @if($showAddBatchModal)
+            <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full border border-slate-200">
+                    
+                    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-white">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg">
+                                ➕
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">Add New Batch / Restock</h3>
+                                <p class="text-xs text-slate-500">Adding stock for <strong>{{ $batchMedicineName }}</strong></p>
+                            </div>
+                        </div>
+                        <button type="button" wire:click="closeAddBatchModal" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">✕</button>
+                    </div>
+
+                    <form wire:submit="saveNewBatch" class="p-6 space-y-4">
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Batch Number *</label>
+                                <input type="text" wire:model="new_batch_number" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-emerald-300 outline-none" required>
+                                @error('new_batch_number') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Supplier</label>
+                                <select wire:model="new_batch_supplier_id" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-300 outline-none">
+                                    <option value="">Select Supplier</option>
+                                    @foreach($suppliers as $sup)
+                                        <option value="{{ $sup->id }}">{{ $sup->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Quantity *</label>
+                                <input type="number" step="0.01" wire:model="new_batch_quantity" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-300 outline-none" placeholder="e.g. 50" required>
+                                @error('new_batch_quantity') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Unit Type</label>
+                                <select wire:model="new_batch_unit" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-300 outline-none">
+                                    <option value="base">Base Unit</option>
+                                    <option value="secondary">Secondary Unit (Strip/Pack)</option>
+                                    <option value="primary">Primary Unit (Box/Carton)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Purchase Cost (PKR)</label>
+                                <input type="number" step="0.01" wire:model="new_batch_purchase_price" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-300 outline-none" placeholder="e.g. 35.00">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Selling Price (PKR) *</label>
+                                <input type="number" step="0.01" wire:model="new_batch_selling_price" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-300 outline-none" placeholder="e.g. 50.00" required>
+                                @error('new_batch_selling_price') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Expiry Date</label>
+                            <input type="date" wire:model="new_batch_expiry_date" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-300 outline-none">
+                            @error('new_batch_expiry_date') <span class="text-red-500 text-xs">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-100 flex justify-end gap-2">
+                            <button type="button" wire:click="closeAddBatchModal" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">Cancel</button>
+                            <button type="submit" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition">Save Batch</button>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+        @endif
+
+        {{-- ========================================================= --}}
+        {{-- MODAL 4: STOCK ADJUSTMENT MODAL --}}
+        {{-- ========================================================= --}}
+        @if($showAdjustStockModal)
+            <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200">
+                    
+                    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-amber-50 to-white">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg">
+                                ⚖️
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">Adjust Stock</h3>
+                                <p class="text-xs text-slate-500">Batch <strong>{{ $adjustBatchNumber }}</strong> ({{ $adjustMedicineName }})</p>
+                            </div>
+                        </div>
+                        <button type="button" wire:click="closeAdjustStockModal" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">✕</button>
+                    </div>
+
+                    <form wire:submit="saveStockAdjustment" class="p-6 space-y-4">
+
+                        <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs">
+                            Current Stock in this Batch: <strong class="text-slate-900 font-bold text-sm">{{ number_format($adjustCurrentQty) }}</strong>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Adjustment Type *</label>
+                            <select wire:model="adjustType" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-300 outline-none">
+                                <option value="ADJUSTMENT_IN">➕ Stock Increase (Found Extra / Audit Correction)</option>
+                                <option value="ADJUSTMENT_OUT">➖ Stock Decrease (Correction / Recount)</option>
+                                <option value="DAMAGE">💔 Damaged Stock (Disposal)</option>
+                                <option value="EXPIRED">⚠️ Expired Stock (Disposal)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Quantity to Adjust *</label>
+                            <input type="number" step="0.01" wire:model="adjustQuantity" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-300 outline-none" placeholder="e.g. 5" required>
+                            @error('adjustQuantity') <span class="text-red-500 text-xs font-semibold">{{ $message }}</span> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Reason / Notes</label>
+                            <input type="text" wire:model="adjustNotes" class="w-full h-10 px-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-300 outline-none" placeholder="Reason for inventory change...">
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-100 flex justify-end gap-2">
+                            <button type="button" wire:click="closeAdjustStockModal" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">Cancel</button>
+                            <button type="submit" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition">Apply Adjustment</button>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+        @endif
+
+        {{-- ========================================================= --}}
+        {{-- MODAL 5: DELETE MEDICINE CONFIRMATION --}}
+        {{-- ========================================================= --}}
+        @if($showDeleteModal)
+            <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200">
+                    
+                    <div class="p-6 text-center space-y-4">
+                        <div class="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                            🗑️
+                        </div>
+
+                        <div>
+                            <h3 class="text-lg font-extrabold text-slate-900">Delete Product</h3>
+                            <p class="text-sm font-semibold text-red-600 mt-1">"{{ $deleteMedicineName }}"</p>
+                        </div>
+
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs text-slate-600 text-left space-y-1.5">
+                            <div class="flex justify-between">
+                                <span>Active Batches:</span>
+                                <strong class="text-slate-900">{{ $deleteMedicineBatchesCount }}</strong>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Current Total Stock:</span>
+                                <strong class="text-slate-900">{{ number_format($deleteMedicineStock) }} units</strong>
+                            </div>
+                            @if($deleteHasSales)
+                                <div class="pt-2 border-t border-slate-200 text-amber-800 text-[11px] font-semibold">
+                                    ⚠️ This product has historical sales/purchase invoices. Deleting it will safely <strong>deactivate and zero its stock</strong> to keep your sales and tax reports accurate.
+                                </div>
+                            @else
+                                <div class="pt-2 border-t border-slate-200 text-slate-500 text-[11px]">
+                                    ✓ This product has no sales history. It will be completely removed from the system.
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="flex items-center justify-end gap-2 pt-2">
+                            <button
+                                type="button"
+                                wire:click="closeDeleteModal"
+                                class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                wire:click="deleteMedicine"
+                                class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm transition active:scale-95"
+                            >
+                                Confirm Delete
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        @endif
+
+        {{-- ========================================================= --}}
+        {{-- MODAL 6: BULK DELETE CONFIRMATION --}}
+        {{-- ========================================================= --}}
+        @if($showBulkDeleteModal)
+            <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200">
+                    
+                    <div class="p-6 text-center space-y-4">
+                        <div class="w-14 h-14 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                            ⚠️
+                        </div>
+
+                        <div>
+                            <h3 class="text-lg font-extrabold text-slate-900">Delete Multiple Products</h3>
+                            <p class="text-sm font-semibold text-slate-600 mt-1">
+                                Are you sure you want to delete <span class="text-red-600 font-bold">{{ count($selectedMedicines) }}</span> selected products?
+                            </p>
+                        </div>
+
+                        <p class="text-xs text-slate-500">
+                            Products with no past invoices will be permanently deleted. Products with past sales records will be archived/deactivated to preserve accounting balance.
+                        </p>
+
+                        <div class="flex items-center justify-end gap-2 pt-2">
+                            <button
+                                type="button"
+                                wire:click="closeBulkDeleteModal"
+                                class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                wire:click="bulkDelete"
+                                class="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-sm transition active:scale-95"
+                            >
+                                Delete All Selected
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        @endif
+
+        {{-- ========================================================= --}}
+        {{-- MODAL 7: BARCODE GENERATOR & THERMAL PRINT --}}
+        {{-- ========================================================= --}}
+        @if($showBarcodeModal && $barcodeMedicine)
+            <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200">
+                    
+                    <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-amber-50 to-white">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg">
+                                🏷️
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">Barcode Label Generator</h3>
+                                <p class="text-xs text-slate-500">{{ $barcodeMedicine->name }}</p>
+                            </div>
+                        </div>
+                        <button type="button" wire:click="closeBarcodeModal" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center">✕</button>
+                    </div>
+
+                    <div class="p-6 space-y-4">
+
+                        {{-- Barcode Label Preview Card --}}
+                        <div id="printable-barcode-tag" class="p-4 bg-white border-2 border-dashed border-slate-300 rounded-xl text-center space-y-2">
+                            <div class="font-extrabold text-sm text-slate-900 leading-tight">
+                                {{ $barcodeMedicine->name }}
+                            </div>
+
+                            @if($barcodeShowGeneric && $barcodeMedicine->generic_name)
+                                <div class="text-[10px] text-slate-500">
+                                    {{ $barcodeMedicine->generic_name }}
+                                </div>
+                            @endif
+
+                            {{-- Visual Barcode Simulator --}}
+                            <div class="py-2 flex flex-col items-center justify-center">
+                                <div class="font-mono text-xl tracking-[0.25em] font-black text-slate-800 border-y-2 border-slate-800 px-4 py-1">
+                                    ||| | |||| | ||| |||| |
+                                </div>
+                                <div class="font-mono text-xs text-slate-600 mt-1 font-bold">
+                                    {{ $barcodeMedicine->barcode ?: ($barcodeMedicine->sku ?: 'MED-' . str_pad($barcodeMedicine->id, 6, '0', STR_PAD_LEFT)) }}
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between text-xs font-bold text-slate-800 pt-1 border-t border-slate-100 px-2">
+                                @if($barcodeShowPrice)
+                                    <span class="text-emerald-700">PKR {{ number_format($barcodeMedicine->selling_price, 2) }}</span>
+                                @endif
+                                @if($barcodeShowExpiry && $barcodeMedicine->batches->first()?->expiry_date)
+                                    <span class="text-slate-500 text-[10px]">Exp: {{ $barcodeMedicine->batches->first()->expiry_date->format('m/Y') }}</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        {{-- Label Options --}}
+                        <div class="space-y-2 text-xs text-slate-700 font-medium">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" wire:model.live="barcodeShowPrice" class="w-4 h-4 text-emerald-600 rounded">
+                                <span>Include Retail Selling Price</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" wire:model.live="barcodeShowExpiry" class="w-4 h-4 text-emerald-600 rounded">
+                                <span>Include Batch Expiry Date</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" wire:model.live="barcodeShowGeneric" class="w-4 h-4 text-emerald-600 rounded">
+                                <span>Include Generic Formula</span>
+                            </label>
+                        </div>
+
+                        <div class="flex items-center justify-end gap-2 pt-2">
+                            <button
+                                type="button"
+                                wire:click="closeBarcodeModal"
+                                class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition"
+                            >
+                                Close
+                            </button>
+                            <button
+                                type="button"
+                                onclick="window.print()"
+                                class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                                </svg>
+                                <span>Print Thermal Label</span>
+                            </button>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+        @endif
 
     {{-- ============================================================= --}}
     {{-- AUTO-SUGGESTION DATALISTS --}}
@@ -1509,11 +2452,9 @@
     {{-- ============================================================= --}}
     {{-- LOCAL MEDICINE SEARCH API --}}
     {{-- ============================================================= --}}
-
     @script
     <script>
         (() => {
-
             const input = document.getElementById('medicine-search');
             const box = document.getElementById('medicine-suggestions');
 
@@ -1524,9 +2465,7 @@
             let timer = null;
 
             input.addEventListener('input', function () {
-
                 clearTimeout(timer);
-
                 const query = this.value.trim();
 
                 if (query.length < 1) {
@@ -1536,9 +2475,7 @@
                 }
 
                 timer = setTimeout(async () => {
-
                     try {
-
                         const response = await fetch(
                             `/api/medicines/search?q=${encodeURIComponent(query)}`,
                             {
@@ -1553,7 +2490,6 @@
                         }
 
                         const medicines = await response.json();
-
                         box.innerHTML = '';
 
                         if (!medicines.length) {
@@ -1562,25 +2498,18 @@
                                     No medicine found
                                 </div>
                             `;
-
                             box.classList.remove('hidden');
                             return;
                         }
 
                         medicines.forEach(medicine => {
-
                             const button = document.createElement('button');
-
                             button.type = 'button';
-
-                            button.className =
-                                'w-full text-left px-4 py-3 hover:bg-emerald-50 border-b border-slate-100 last:border-0';
-
+                            button.className = 'w-full text-left px-4 py-3 hover:bg-emerald-50 border-b border-slate-100 last:border-0';
                             button.innerHTML = `
                                 <div class="font-medium text-slate-800">
                                     ${escapeHtml(medicine.name)}
                                 </div>
-
                                 <div class="text-xs text-slate-400 mt-0.5">
                                     ${escapeHtml(medicine.generic_name ?? '')}
                                     ${medicine.brand ? ' • ' + escapeHtml(medicine.brand) : ''}
@@ -1588,68 +2517,46 @@
                             `;
 
                             button.addEventListener('click', () => {
-
                                 input.value = medicine.name;
-
                                 if (window.Livewire) {
                                     const component = input.closest('[wire\\:id]');
-
                                     if (component) {
-                                        Livewire.find(component.getAttribute('wire:id'))
-                                            .set('name', medicine.name);
+                                        Livewire.find(component.getAttribute('wire:id')).set('name', medicine.name);
                                     }
                                 }
-
                                 box.innerHTML = '';
                                 box.classList.add('hidden');
                             });
 
                             box.appendChild(button);
-
                         });
 
                         box.classList.remove('hidden');
-
                     } catch (error) {
-
                         console.error('Medicine API error:', error);
-
                         box.innerHTML = `
                             <div class="px-4 py-3 text-sm text-red-500">
                                 Unable to search medicines
                             </div>
                         `;
-
                         box.classList.remove('hidden');
                     }
-
                 }, 250);
-
             });
-
 
             document.addEventListener('click', function (event) {
-
-                if (!input.contains(event.target) &&
-                    !box.contains(event.target)) {
-
+                if (!input.contains(event.target) && !box.contains(event.target)) {
                     box.classList.add('hidden');
                 }
-
             });
 
-
             function escapeHtml(value) {
-
                 const div = document.createElement('div');
-
                 div.textContent = value ?? '';
-
                 return div.innerHTML;
             }
-
         })();
     </script>
     @endscript
 
-</div>
+</div>

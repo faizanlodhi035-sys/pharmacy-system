@@ -15,9 +15,13 @@ use App\Services\StockLedgerService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class AddMedicine extends Component
 {
+    use WithPagination;
+
+    // Form Add properties
     public string $product_type = 'medicine';
     public string $name = '';
     public string $generic_name = '';
@@ -63,11 +67,102 @@ class AddMedicine extends Component
     public string $secondary_unit_barcode = '';
     public string $base_unit_barcode = '';
 
+    // Data Table Filters & State
     public string $search = '';
     public string $productTypeFilter = 'all';
     public string $categoryFilter = '';
     public string $supplierFilter = '';
     public string $stockFilter = '';
+    public string $expiryFilter = '';
+    public int $perPage = 15;
+    public string $sortField = 'created_at';
+    public string $sortDirection = 'desc';
+
+    // Selection & Bulk actions
+    public array $selectedMedicines = [];
+    public bool $selectAll = false;
+    public array $expandedRows = [];
+
+    // Quick View Modal
+    public bool $showViewModal = false;
+    public ?int $viewMedicineId = null;
+
+    // Edit Modal
+    public bool $showEditModal = false;
+    public ?int $editMedicineId = null;
+    public string $edit_name = '';
+    public string $edit_generic_name = '';
+    public string $edit_brand = '';
+    public string $edit_strength = '';
+    public string $edit_dosage_form = '';
+    public string $edit_category_id = '';
+    public string $edit_manufacturer = '';
+    public string $edit_barcode = '';
+    public string $edit_sku = '';
+    public string $edit_alert_quantity = '10';
+    public string $edit_reorder_level = '10';
+    public string $edit_tax_rate = '0';
+    public string $edit_status = 'active';
+    public string $edit_product_type = 'medicine';
+    public string $edit_primary_unit = '';
+    public string $edit_secondary_unit = '';
+    public string $edit_base_unit = '';
+    public string $edit_primary_unit_to_secondary = '10';
+    public string $edit_secondary_unit_to_base = '10';
+    public string $edit_unit_price = '';
+    public string $edit_purchase_price = '';
+    public string $edit_primary_unit_selling_price = '';
+    public string $edit_secondary_unit_selling_price = '';
+    public string $edit_base_unit_selling_price = '';
+
+    // Add Batch / Restock Modal
+    public bool $showAddBatchModal = false;
+    public ?int $batchMedicineId = null;
+    public string $batchMedicineName = '';
+    public string $new_batch_number = '';
+    public string $new_batch_supplier_id = '';
+    public string $new_batch_quantity = '';
+    public string $new_batch_unit = 'base';
+    public string $new_batch_purchase_price = '';
+    public string $new_batch_selling_price = '';
+    public string $new_batch_expiry_date = '';
+
+    // Stock Adjustment Modal
+    public bool $showAdjustStockModal = false;
+    public ?int $adjustBatchId = null;
+    public ?int $adjustMedicineId = null;
+    public string $adjustBatchNumber = '';
+    public string $adjustMedicineName = '';
+    public float $adjustCurrentQty = 0;
+    public string $adjustType = 'ADJUSTMENT_IN';
+    public string $adjustQuantity = '';
+    public string $adjustNotes = '';
+
+    // Delete Modals
+    public bool $showDeleteModal = false;
+    public ?int $deleteMedicineId = null;
+    public string $deleteMedicineName = '';
+    public int $deleteMedicineStock = 0;
+    public int $deleteMedicineBatchesCount = 0;
+    public bool $deleteHasSales = false;
+    public bool $showBulkDeleteModal = false;
+
+    // Barcode Modal
+    public bool $showBarcodeModal = false;
+    public ?int $barcodeMedicineId = null;
+    public int $barcodeCopies = 1;
+    public bool $barcodeShowPrice = true;
+    public bool $barcodeShowExpiry = true;
+    public bool $barcodeShowGeneric = false;
+
+    // Reset pagination when filters change
+    public function updatingSearch(): void { $this->resetPage(); }
+    public function updatingProductTypeFilter(): void { $this->resetPage(); }
+    public function updatingCategoryFilter(): void { $this->resetPage(); }
+    public function updatingSupplierFilter(): void { $this->resetPage(); }
+    public function updatingStockFilter(): void { $this->resetPage(); }
+    public function updatingExpiryFilter(): void { $this->resetPage(); }
+    public function updatingPerPage(): void { $this->resetPage(); }
 
     public function updatedCategoryId($val): void
     {
@@ -199,7 +294,6 @@ class AddMedicine extends Component
     public function updatedInitialStockUnit(string $unit): void
     {
         if ($unit !== 'base' && $unit !== 'secondary' && $unit !== 'primary') {
-            // User selected a specific unit name from dropdown, e.g. Bottle, Capsule, Tube, Vial
             $this->base_unit = $unit;
             $this->initial_stock_unit = 'base';
         }
@@ -297,7 +391,6 @@ class AddMedicine extends Component
         $this->validate($rules);
 
         DB::transaction(function () {
-            // 1. Ensure Base Unit exists in units table
             $baseUnitSlug = Str::slug($this->base_unit);
             $baseUnit = Unit::firstOrCreate(
                 ['unit_id' => $baseUnitSlug],
@@ -314,7 +407,7 @@ class AddMedicine extends Component
 
             $batchNum = trim($this->batch_number);
             if (empty($batchNum)) {
-                $batchNum = 'BAT-' . strtoupper(Str::random(6));
+                $batchNum = ($this->product_type === 'general' ? 'GEN-' : 'BAT-') . strtoupper(Str::random(6));
             }
 
             $primaryToSecondary = max(1, (int) ($this->primary_unit_to_secondary ?: 1));
@@ -357,8 +450,7 @@ class AddMedicine extends Component
 
             $medicine->update($medicineData);
 
-            // 2. Set up medicine_packaging records (Hierarchy & Conversions)
-            // A. Base Unit Packaging (Conversion = 1)
+            // Base Unit Packaging
             $basePkg = MedicinePackaging::updateOrCreate(
                 [
                     'medicine_id' => $medicine->id,
@@ -379,7 +471,6 @@ class AddMedicine extends Component
             );
 
             $secondaryPkg = null;
-            // B. Secondary Unit Packaging (if provided)
             if (!empty($this->secondary_unit) && $this->product_type === 'medicine') {
                 $secUnitSlug = Str::slug($this->secondary_unit);
                 $secUnit = Unit::firstOrCreate(
@@ -411,7 +502,6 @@ class AddMedicine extends Component
                 );
             }
 
-            // C. Primary Unit Packaging (if provided)
             if (!empty($this->primary_unit)) {
                 $primUnitSlug = Str::slug($this->primary_unit);
                 $primUnit = Unit::firstOrCreate(
@@ -443,7 +533,6 @@ class AddMedicine extends Component
                 );
             }
 
-            // 3. Initial stock calculation: convert entered quantity to Base Units
             $inputQty = (float) $this->quantity;
             $selectedConversion = 1.0;
             $selectedUnitName = $this->base_unit;
@@ -458,7 +547,6 @@ class AddMedicine extends Component
 
             $initialBaseQuantity = round($inputQty * $selectedConversion, 4);
 
-            // 4. Create initial batch in BASE UNITS
             $batch = MedicineBatch::create([
                 'medicine_id' => $medicine->id,
                 'supplier_id' => $this->supplier_id ?: null,
@@ -472,7 +560,6 @@ class AddMedicine extends Component
                 'status' => 'active',
             ]);
 
-            // 5. Record OPENING_STOCK movement in stock ledger
             if ($initialBaseQuantity > 0) {
                 app(StockLedgerService::class)->recordMovement(
                     medicineId: $medicine->id,
@@ -493,44 +580,17 @@ class AddMedicine extends Component
         });
 
         $label = $this->product_type === 'general' ? 'General Store Item' : 'Medicine';
-        session()->flash(
-            'message',
-            "{$label} Added Successfully with complete packaging hierarchy!"
-        );
+        session()->flash('message', "{$label} Added Successfully with complete packaging hierarchy!");
 
         $this->reset([
-            'name',
-            'generic_name',
-            'brand',
-            'strength',
-            'dosage_form',
-            'manufacturer',
-            'barcode',
-            'sku',
-            'category_id',
-            'category_search',
-            'supplier_id',
-            'batch_number',
-            'quantity',
-            'initial_stock_unit',
-            'purchase_price',
-            'selling_price',
-            'expiry_date',
-            'primary_unit',
-            'secondary_unit',
-            'base_unit',
-            'dosage_unit',
-            'primary_unit_to_secondary',
-            'secondary_unit_to_base',
-            'primary_unit_purchase_price',
-            'secondary_unit_purchase_price',
-            'base_unit_purchase_price',
-            'primary_unit_selling_price',
-            'secondary_unit_selling_price',
-            'base_unit_selling_price',
-            'primary_unit_barcode',
-            'secondary_unit_barcode',
-            'base_unit_barcode',
+            'name', 'generic_name', 'brand', 'strength', 'dosage_form', 'manufacturer',
+            'barcode', 'sku', 'category_id', 'category_search', 'supplier_id', 'batch_number',
+            'quantity', 'initial_stock_unit', 'purchase_price', 'selling_price', 'expiry_date',
+            'primary_unit', 'secondary_unit', 'base_unit', 'dosage_unit',
+            'primary_unit_to_secondary', 'secondary_unit_to_base',
+            'primary_unit_purchase_price', 'secondary_unit_purchase_price', 'base_unit_purchase_price',
+            'primary_unit_selling_price', 'secondary_unit_selling_price', 'base_unit_selling_price',
+            'primary_unit_barcode', 'secondary_unit_barcode', 'base_unit_barcode',
         ]);
 
         $this->alert_quantity = '10';
@@ -549,7 +609,554 @@ class AddMedicine extends Component
             $this->primary_unit_to_secondary = '10';
             $this->secondary_unit_to_base = '10';
         }
+
+        $this->resetPage();
     }
+
+    // =========================================================================
+    // TABLE ACTIONS & METHODS
+    // =========================================================================
+
+    public function sortBy(string $field): void
+    {
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = 'asc';
+        }
+        $this->resetPage();
+    }
+
+    public function updatedSelectAll($value): void
+    {
+        if ($value) {
+            $this->selectedMedicines = Medicine::latest()->pluck('id')->map(fn($id) => (string)$id)->toArray();
+        } else {
+            $this->selectedMedicines = [];
+        }
+    }
+
+    public function toggleExpandRow(int $id): void
+    {
+        if (in_array($id, $this->expandedRows)) {
+            $this->expandedRows = array_values(array_diff($this->expandedRows, [$id]));
+        } else {
+            $this->expandedRows[] = $id;
+        }
+    }
+
+    public function openViewModal(int $id): void
+    {
+        $this->viewMedicineId = $id;
+        $this->showViewModal = true;
+    }
+
+    public function closeViewModal(): void
+    {
+        $this->showViewModal = false;
+        $this->viewMedicineId = null;
+    }
+
+    public function openBarcodeModal(int $id): void
+    {
+        $this->barcodeMedicineId = $id;
+        $this->barcodeCopies = 1;
+        $this->showBarcodeModal = true;
+    }
+
+    public function closeBarcodeModal(): void
+    {
+        $this->showBarcodeModal = false;
+        $this->barcodeMedicineId = null;
+    }
+
+    // =========================================================================
+    // EDIT MEDICINE MODAL
+    // =========================================================================
+
+    public function openEditModal(int $id): void
+    {
+        $med = Medicine::with(['packagings.unit', 'category'])->find($id);
+        if (!$med) return;
+
+        $this->editMedicineId = $med->id;
+        $this->edit_name = $med->name;
+        $this->edit_generic_name = $med->generic_name ?? '';
+        $this->edit_brand = $med->brand ?? '';
+        $this->edit_strength = $med->strength ?? '';
+        $this->edit_dosage_form = $med->dosage_form ?? '';
+        $this->edit_category_id = (string)($med->category_id ?? '');
+        $this->edit_manufacturer = $med->manufacturer ?? '';
+        $this->edit_barcode = $med->barcode ?? '';
+        $this->edit_sku = $med->sku ?? '';
+        $this->edit_alert_quantity = (string)($med->alert_quantity ?? 10);
+        $this->edit_reorder_level = (string)($med->reorder_level ?? 10);
+        $this->edit_tax_rate = (string)($med->tax_rate ?? 0);
+        $this->edit_status = $med->status ?? 'active';
+        $this->edit_product_type = $med->product_type ?? 'medicine';
+        $this->edit_primary_unit = $med->primary_unit ?? '';
+        $this->edit_secondary_unit = $med->secondary_unit ?? '';
+        $this->edit_base_unit = $med->base_unit ?? 'Tablet';
+        $this->edit_primary_unit_to_secondary = (string)($med->primary_unit_to_secondary ?? 10);
+        $this->edit_secondary_unit_to_base = (string)($med->secondary_unit_to_base ?? 10);
+        $this->edit_unit_price = (string)($med->unit_price ?? 0);
+        $this->edit_purchase_price = (string)($med->purchase_price ?? 0);
+        $this->edit_primary_unit_selling_price = (string)($med->primary_unit_selling_price ?? '');
+        $this->edit_secondary_unit_selling_price = (string)($med->secondary_unit_selling_price ?? '');
+        $this->edit_base_unit_selling_price = (string)($med->base_unit_selling_price ?? $med->unit_price ?? '');
+
+        $this->showEditModal = true;
+    }
+
+    public function closeEditModal(): void
+    {
+        $this->showEditModal = false;
+        $this->editMedicineId = null;
+    }
+
+    public function updateMedicine(): void
+    {
+        if (!$this->editMedicineId) return;
+
+        $this->validate([
+            'edit_name' => 'required|string|max:255',
+            'edit_category_id' => 'required|exists:categories,id',
+            'edit_unit_price' => 'required|numeric|min:0',
+            'edit_purchase_price' => 'nullable|numeric|min:0',
+            'edit_alert_quantity' => 'nullable|integer|min:0',
+            'edit_reorder_level' => 'nullable|integer|min:0',
+            'edit_tax_rate' => 'nullable|numeric|min:0',
+        ]);
+
+        $medicine = Medicine::find($this->editMedicineId);
+        if (!$medicine) {
+            $this->closeEditModal();
+            return;
+        }
+
+        DB::transaction(function () use ($medicine) {
+            $basePrice = (float)$this->edit_unit_price;
+            $basePurchasePrice = (float)($this->edit_purchase_price ?: 0);
+
+            $medicine->update([
+                'name' => trim($this->edit_name),
+                'generic_name' => $this->edit_product_type === 'medicine' ? ($this->edit_generic_name ?: null) : null,
+                'brand' => $this->edit_brand ?: null,
+                'strength' => $this->edit_strength ?: null,
+                'dosage_form' => $this->edit_dosage_form ?: null,
+                'category_id' => $this->edit_category_id,
+                'manufacturer' => $this->edit_manufacturer ?: null,
+                'barcode' => $this->edit_barcode ?: null,
+                'sku' => $this->edit_sku ?: null,
+                'alert_quantity' => (int)($this->edit_alert_quantity ?: 10),
+                'reorder_level' => (int)($this->edit_reorder_level ?: 10),
+                'tax_rate' => (float)($this->edit_tax_rate ?: 0),
+                'status' => $this->edit_status ?: 'active',
+                'unit_price' => $basePrice,
+                'purchase_price' => $basePurchasePrice,
+                'primary_unit' => $this->edit_primary_unit ?: null,
+                'secondary_unit' => $this->edit_secondary_unit ?: null,
+                'primary_unit_to_secondary' => max(1, (int)($this->edit_primary_unit_to_secondary ?: 1)),
+                'secondary_unit_to_base' => max(1, (int)($this->edit_secondary_unit_to_base ?: 1)),
+                'primary_unit_selling_price' => $this->edit_primary_unit_selling_price !== '' ? (float)$this->edit_primary_unit_selling_price : null,
+                'secondary_unit_selling_price' => ($this->edit_product_type === 'medicine' && $this->edit_secondary_unit_selling_price !== '') ? (float)$this->edit_secondary_unit_selling_price : null,
+                'base_unit_selling_price' => $basePrice,
+            ]);
+
+            MedicinePackaging::where('medicine_id', $medicine->id)
+                ->where('conversion_to_base', 1.0)
+                ->update([
+                    'sale_price' => $basePrice,
+                    'purchase_price' => $basePurchasePrice,
+                    'barcode' => $this->edit_barcode ?: null,
+                ]);
+        });
+
+        session()->flash('message', "Product '{$medicine->name}' updated successfully.");
+        $this->closeEditModal();
+    }
+
+    // =========================================================================
+    // ADD BATCH / RESTOCK MODAL
+    // =========================================================================
+
+    public function openAddBatchModal(int $id): void
+    {
+        $med = Medicine::find($id);
+        if (!$med) return;
+
+        $this->batchMedicineId = $med->id;
+        $this->batchMedicineName = $med->name;
+        $this->new_batch_number = ($med->product_type === 'general' ? 'GEN-' : 'BAT-') . strtoupper(Str::random(6));
+        $this->new_batch_supplier_id = '';
+        $this->new_batch_quantity = '';
+        $this->new_batch_unit = 'base';
+        $this->new_batch_purchase_price = (string)($med->purchase_price ?? '');
+        $this->new_batch_selling_price = (string)($med->unit_price ?? '');
+        $this->new_batch_expiry_date = '';
+
+        $this->showAddBatchModal = true;
+    }
+
+    public function closeAddBatchModal(): void
+    {
+        $this->showAddBatchModal = false;
+        $this->batchMedicineId = null;
+    }
+
+    public function saveNewBatch(): void
+    {
+        if (!$this->batchMedicineId) return;
+
+        $medicine = Medicine::with('packagings')->find($this->batchMedicineId);
+        if (!$medicine) return;
+
+        $this->validate([
+            'new_batch_number' => 'required|string|max:255',
+            'new_batch_quantity' => 'required|numeric|min:0.01',
+            'new_batch_selling_price' => 'required|numeric|min:0',
+            'new_batch_purchase_price' => 'nullable|numeric|min:0',
+            'new_batch_expiry_date' => $medicine->has_expiry ? 'required|date' : 'nullable|date',
+        ]);
+
+        DB::transaction(function () use ($medicine) {
+            $multiplier = 1.0;
+            if ($this->new_batch_unit === 'primary') {
+                $multiplier = (float)$medicine->primary_to_base_multiplier;
+            } elseif ($this->new_batch_unit === 'secondary') {
+                $multiplier = (float)$medicine->secondary_to_base_multiplier;
+            }
+
+            $baseQty = round((float)$this->new_batch_quantity * $multiplier, 4);
+            $sellPrice = (float)$this->new_batch_selling_price;
+            $costPrice = (float)($this->new_batch_purchase_price ?: $medicine->purchase_price ?: 0);
+
+            $batch = MedicineBatch::create([
+                'medicine_id' => $medicine->id,
+                'supplier_id' => $this->new_batch_supplier_id ?: null,
+                'batch_number' => trim($this->new_batch_number),
+                'quantity' => $baseQty,
+                'purchase_price' => $costPrice,
+                'selling_price' => $sellPrice,
+                'purchase_price_per_base_unit' => $costPrice / max(1, $multiplier),
+                'selling_price_per_base_unit' => $sellPrice / max(1, $multiplier),
+                'expiry_date' => $medicine->has_expiry ? ($this->new_batch_expiry_date ?: null) : null,
+                'status' => 'active',
+            ]);
+
+            app(StockLedgerService::class)->recordMovement(
+                medicineId: $medicine->id,
+                batchId: $batch->id,
+                type: 'PURCHASE',
+                referenceId: null,
+                referenceType: null,
+                selectedUnitId: $medicine->base_unit_id,
+                quantity: (float)$this->new_batch_quantity,
+                conversionToBase: $multiplier,
+                baseQuantity: $baseQty,
+                userId: auth()->id() ?? 1,
+                notes: "Restocked via Inventory List: Batch {$batch->batch_number}"
+            );
+        });
+
+        session()->flash('message', "New batch added & stock updated for '{$medicine->name}'.");
+        $this->closeAddBatchModal();
+    }
+
+    // =========================================================================
+    // STOCK ADJUSTMENT MODAL
+    // =========================================================================
+
+    public function openAdjustStockModal(int $batchId): void
+    {
+        $batch = MedicineBatch::with('medicine')->find($batchId);
+        if (!$batch) return;
+
+        $this->adjustBatchId = $batch->id;
+        $this->adjustMedicineId = $batch->medicine_id;
+        $this->adjustBatchNumber = $batch->batch_number;
+        $this->adjustMedicineName = $batch->medicine->name ?? 'Medicine';
+        $this->adjustCurrentQty = (float)$batch->quantity;
+        $this->adjustType = 'ADJUSTMENT_IN';
+        $this->adjustQuantity = '';
+        $this->adjustNotes = '';
+
+        $this->showAdjustStockModal = true;
+    }
+
+    public function closeAdjustStockModal(): void
+    {
+        $this->showAdjustStockModal = false;
+        $this->adjustBatchId = null;
+    }
+
+    public function saveStockAdjustment(): void
+    {
+        if (!$this->adjustBatchId) return;
+
+        $this->validate([
+            'adjustQuantity' => 'required|numeric|min:0.01',
+            'adjustType' => 'required|in:ADJUSTMENT_IN,ADJUSTMENT_OUT,DAMAGE,EXPIRED',
+            'adjustNotes' => 'nullable|string|max:255',
+        ]);
+
+        $batch = MedicineBatch::with('medicine')->find($this->adjustBatchId);
+        if (!$batch) return;
+
+        $qty = (float)$this->adjustQuantity;
+        $current = (float)$batch->quantity;
+
+        if (in_array($this->adjustType, ['ADJUSTMENT_OUT', 'DAMAGE', 'EXPIRED']) && $qty > $current) {
+            $this->addError('adjustQuantity', "Adjustment quantity ({$qty}) cannot exceed current batch stock ({$current}).");
+            return;
+        }
+
+        DB::transaction(function () use ($batch, $qty) {
+            $isIncoming = in_array($this->adjustType, ['ADJUSTMENT_IN']);
+            $newQty = $isIncoming ? ($batch->quantity + $qty) : max(0, $batch->quantity - $qty);
+
+            $batch->update([
+                'quantity' => $newQty,
+                'status' => $newQty <= 0 ? 'depleted' : 'active',
+            ]);
+
+            app(StockLedgerService::class)->recordMovement(
+                medicineId: $batch->medicine_id,
+                batchId: $batch->id,
+                type: $this->adjustType,
+                referenceId: null,
+                referenceType: null,
+                selectedUnitId: $batch->medicine?->base_unit_id,
+                quantity: $qty,
+                conversionToBase: 1.0,
+                baseQuantity: $qty,
+                userId: auth()->id() ?? 1,
+                notes: $this->adjustNotes ?: "Stock Adjustment ({$this->adjustType})"
+            );
+        });
+
+        session()->flash('message', "Stock adjusted successfully for Batch {$batch->batch_number}.");
+        $this->closeAdjustStockModal();
+    }
+
+    // =========================================================================
+    // DELETE FUNCTIONALITY
+    // =========================================================================
+
+    public function confirmDelete(int $id): void
+    {
+        $medicine = Medicine::with(['batches', 'inventory'])->find($id);
+        if (!$medicine) return;
+
+        $this->deleteMedicineId = $id;
+        $this->deleteMedicineName = $medicine->name;
+        $this->deleteMedicineStock = $medicine->batches->sum('quantity');
+        $this->deleteMedicineBatchesCount = $medicine->batches->count();
+        $this->deleteHasSales = DB::table('sale_items')->where('medicine_id', $id)->exists()
+            || DB::table('purchase_invoice_items')->where('medicine_id', $id)->exists();
+
+        $this->showDeleteModal = true;
+    }
+
+    public function closeDeleteModal(): void
+    {
+        $this->showDeleteModal = false;
+        $this->deleteMedicineId = null;
+        $this->deleteMedicineName = '';
+    }
+
+    public function deleteMedicine(): void
+    {
+        if (!$this->deleteMedicineId) return;
+
+        $medicine = Medicine::find($this->deleteMedicineId);
+        if (!$medicine) {
+            $this->closeDeleteModal();
+            return;
+        }
+
+        try {
+            DB::transaction(function () use ($medicine) {
+                $id = $medicine->id;
+
+                $hasSales = DB::table('sale_items')->where('medicine_id', $id)->exists();
+                $hasPurchases = DB::table('purchase_invoice_items')->where('medicine_id', $id)->exists();
+
+                if ($hasSales || $hasPurchases) {
+                    $medicine->update(['status' => 'inactive']);
+                    MedicineBatch::where('medicine_id', $id)->update(['status' => 'archived', 'quantity' => 0]);
+                    Inventory::where('medicine_id', $id)->update(['total_base_quantity' => 0, 'available_base_quantity' => 0]);
+                    session()->flash('warning', "Product '{$medicine->name}' has sales/purchase history. It has been deactivated and stock zeroed to preserve financial records.");
+                } else {
+                    StockMovement::where('medicine_id', $id)->delete();
+                    MedicineBatch::where('medicine_id', $id)->delete();
+                    MedicinePackaging::where('medicine_id', $id)->delete();
+                    Inventory::where('medicine_id', $id)->delete();
+                    $medicine->delete();
+                    session()->flash('message', "Product '{$medicine->name}' and all associated records deleted successfully.");
+                }
+            });
+        } catch (\Exception $e) {
+            session()->flash('error', 'Could not delete product: ' . $e->getMessage());
+        }
+
+        $this->closeDeleteModal();
+        $this->resetPage();
+    }
+
+    public function deleteBatch(int $batchId): void
+    {
+        try {
+            DB::transaction(function () use ($batchId) {
+                $batch = MedicineBatch::find($batchId);
+                if (!$batch) return;
+
+                $medicineId = $batch->medicine_id;
+                $batchNum = $batch->batch_number;
+
+                $hasSales = DB::table('sale_items')->where('batch_id', $batchId)->exists();
+                if ($hasSales) {
+                    $batch->update(['quantity' => 0, 'status' => 'depleted']);
+                    session()->flash('warning', "Batch '{$batchNum}' has past sales. Its stock was zeroed and marked depleted.");
+                } else {
+                    StockMovement::where('batch_id', $batchId)->delete();
+                    $batch->delete();
+                    session()->flash('message', "Batch '{$batchNum}' deleted successfully.");
+                }
+
+                app(StockLedgerService::class)->syncInventory($medicineId);
+            });
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error deleting batch: ' . $e->getMessage());
+        }
+    }
+
+    // =========================================================================
+    // BULK ACTIONS
+    // =========================================================================
+
+    public function confirmBulkDelete(): void
+    {
+        if (empty($this->selectedMedicines)) {
+            session()->flash('error', 'No products selected.');
+            return;
+        }
+        $this->showBulkDeleteModal = true;
+    }
+
+    public function closeBulkDeleteModal(): void
+    {
+        $this->showBulkDeleteModal = false;
+    }
+
+    public function bulkDelete(): void
+    {
+        if (empty($this->selectedMedicines)) {
+            $this->closeBulkDeleteModal();
+            return;
+        }
+
+        $count = 0;
+        $archived = 0;
+
+        DB::transaction(function () use (&$count, &$archived) {
+            foreach ($this->selectedMedicines as $id) {
+                $medicine = Medicine::find($id);
+                if (!$medicine) continue;
+
+                $hasSales = DB::table('sale_items')->where('medicine_id', $id)->exists()
+                    || DB::table('purchase_invoice_items')->where('medicine_id', $id)->exists();
+
+                if ($hasSales) {
+                    $medicine->update(['status' => 'inactive']);
+                    MedicineBatch::where('medicine_id', $id)->update(['status' => 'archived', 'quantity' => 0]);
+                    Inventory::where('medicine_id', $id)->update(['total_base_quantity' => 0, 'available_base_quantity' => 0]);
+                    $archived++;
+                } else {
+                    StockMovement::where('medicine_id', $id)->delete();
+                    MedicineBatch::where('medicine_id', $id)->delete();
+                    MedicinePackaging::where('medicine_id', $id)->delete();
+                    Inventory::where('medicine_id', $id)->delete();
+                    $medicine->delete();
+                    $count++;
+                }
+            }
+        });
+
+        $this->selectedMedicines = [];
+        $this->selectAll = false;
+        $this->closeBulkDeleteModal();
+
+        $msg = "{$count} products deleted successfully.";
+        if ($archived > 0) {
+            $msg .= " ({$archived} products with sales records were deactivated).";
+        }
+        session()->flash('message', $msg);
+        $this->resetPage();
+    }
+
+    public function bulkUpdateStatus(string $status): void
+    {
+        if (empty($this->selectedMedicines)) return;
+
+        Medicine::whereIn('id', $this->selectedMedicines)->update(['status' => $status]);
+        session()->flash('message', count($this->selectedMedicines) . " products updated to '{$status}'.");
+        $this->selectedMedicines = [];
+        $this->selectAll = false;
+    }
+
+    public function exportCsv()
+    {
+        $medicines = Medicine::with(['category', 'batches', 'packagings.unit', 'inventory'])->get();
+
+        $filename = 'inventory-products-' . date('Y-m-d-His') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
+        ];
+
+        $callback = function () use ($medicines) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, [
+                'ID', 'Type', 'Name', 'Generic Name', 'Brand', 'Category', 'Base Unit', 
+                'Total Stock', 'Purchase Price (PKR)', 'Selling Price (PKR)', 'Barcode', 
+                'SKU', 'Batches Count', 'Status'
+            ]);
+
+            foreach ($medicines as $m) {
+                $totalStock = $m->batches->sum('quantity');
+                $firstBatch = $m->batches->first();
+                fputcsv($file, [
+                    $m->id,
+                    $m->product_type,
+                    $m->name,
+                    $m->generic_name ?? '',
+                    $m->brand ?? '',
+                    $m->category?->name ?? '',
+                    $m->base_unit,
+                    $totalStock,
+                    $firstBatch->purchase_price ?? $m->purchase_price ?? 0,
+                    $firstBatch->selling_price ?? $m->unit_price ?? 0,
+                    $m->barcode ?? '',
+                    $m->sku ?? '',
+                    $m->batches->count(),
+                    $m->status ?? 'active',
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    // =========================================================================
+    // RENDER METHOD
+    // =========================================================================
 
     public function render()
     {
@@ -562,12 +1169,15 @@ class AddMedicine extends Component
 
         if (trim($this->search) !== '') {
             $search = trim($this->search);
-
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
                     ->orWhere('generic_name', 'like', "%{$search}%")
                     ->orWhere('brand', 'like', "%{$search}%")
-                    ->orWhere('barcode', 'like', "%{$search}%");
+                    ->orWhere('barcode', 'like', "%{$search}%")
+                    ->orWhere('sku', 'like', "%{$search}%")
+                    ->orWhereHas('batches', function ($bq) use ($search) {
+                        $bq->where('batch_number', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -579,41 +1189,77 @@ class AddMedicine extends Component
             $query->where('category_id', $this->categoryFilter);
         }
 
-        $medicines = $query->latest()->get();
-
         if ($this->supplierFilter !== '') {
-            $medicines = $medicines->filter(function ($medicine) {
-                return $medicine->batches->contains(function ($batch) {
-                    return (string) $batch->supplier_id === (string) $this->supplierFilter;
-                });
+            $query->whereHas('batches', function ($q) {
+                $q->where('supplier_id', $this->supplierFilter);
             });
         }
 
-        if ($this->stockFilter !== '') {
-            $medicines = $medicines->filter(function ($medicine) {
-                $stock = $medicine->batches->sum('quantity');
-                $alert = $medicine->reorder_level ?? $medicine->alert_quantity ?? 10;
-
-                $expired = $medicine->batches
-                    ->where('quantity', '>', 0)
-                    ->contains(function ($batch) {
-                        return $batch->expiry_date && $batch->expiry_date->isPast();
-                    });
-
-                return match ($this->stockFilter) {
-                    'in_stock' => $stock > $alert && ! $expired,
-                    'low_stock' => $stock > 0 && $stock <= $alert && ! $expired,
-                    'out_of_stock' => $stock <= 0,
-                    'expired' => $expired,
-                    default => true,
-                };
+        if ($this->stockFilter === 'out_of_stock') {
+            $query->whereDoesntHave('batches', function ($q) {
+                $q->where('quantity', '>', 0);
+            });
+        } elseif ($this->stockFilter === 'in_stock') {
+            $query->whereHas('batches', function ($q) {
+                $q->where('quantity', '>', 0);
+            });
+        } elseif ($this->stockFilter === 'expired') {
+            $query->whereHas('batches', function ($q) {
+                $q->where('quantity', '>', 0)
+                    ->whereDate('expiry_date', '<', now()->toDateString());
+            });
+        } elseif ($this->stockFilter === 'low_stock') {
+            $query->whereHas('batches', function ($q) {
+                $q->where('quantity', '>', 0);
             });
         }
 
+        if ($this->expiryFilter === '30_days') {
+            $query->whereHas('batches', function ($q) {
+                $q->where('quantity', '>', 0)
+                    ->whereBetween('expiry_date', [now()->toDateString(), now()->addDays(30)->toDateString()]);
+            });
+        } elseif ($this->expiryFilter === '60_days') {
+            $query->whereHas('batches', function ($q) {
+                $q->where('quantity', '>', 0)
+                    ->whereBetween('expiry_date', [now()->toDateString(), now()->addDays(60)->toDateString()]);
+            });
+        } elseif ($this->expiryFilter === '90_days') {
+            $query->whereHas('batches', function ($q) {
+                $q->where('quantity', '>', 0)
+                    ->whereBetween('expiry_date', [now()->toDateString(), now()->addDays(90)->toDateString()]);
+            });
+        }
+
+        // Sorting
+        if ($this->sortField === 'name') {
+            $query->orderBy('name', $this->sortDirection);
+        } elseif ($this->sortField === 'unit_price') {
+            $query->orderBy('unit_price', $this->sortDirection);
+        } elseif ($this->sortField === 'category') {
+            $query->join('categories', 'medicines.category_id', '=', 'categories.id')
+                ->orderBy('categories.name', $this->sortDirection)
+                ->select('medicines.*');
+        } else {
+            $query->orderBy('medicines.created_at', $this->sortDirection);
+        }
+
+        $medicines = $query->paginate($this->perPage);
+
+        // Overall Stats
         $allMedicines = Medicine::with('batches')->get();
         $totalMedicines = $allMedicines->count();
+        $totalMedicineProducts = $allMedicines->where('product_type', 'medicine')->count();
+        $totalGeneralProducts = $allMedicines->where('product_type', 'general')->count();
+
         $totalStock = $allMedicines->sum(function ($medicine) {
             return $medicine->batches->sum('quantity');
+        });
+
+        $totalStockValue = $allMedicines->sum(function ($medicine) {
+            return $medicine->batches->sum(function ($b) {
+                return (float)($b->quantity * ($b->selling_price_per_base_unit ?? $b->selling_price ?? 0));
+            });
         });
 
         $lowStock = $allMedicines->filter(function ($medicine) {
@@ -630,12 +1276,26 @@ class AddMedicine extends Component
                 });
         })->count();
 
+        $nearExpiry = $allMedicines->filter(function ($medicine) {
+            return $medicine->batches
+                ->where('quantity', '>', 0)
+                ->contains(function ($batch) {
+                    return $batch->expiry_date &&
+                        !$batch->expiry_date->isPast() &&
+                        $batch->expiry_date->lessThanOrEqualTo(now()->addDays(90));
+                });
+        })->count();
+
         $categories = Category::orderBy('name')->get();
         $formCategories = Category::forProductType($this->product_type)->orderBy('name')->get();
         $suppliers = Supplier::orderBy('name')->get();
         $availableUnits = Unit::active()->orderBy('name')->get();
 
-        // 1. Suggested Product Names (Tailored to Product Type)
+        // Selected Modals Data
+        $viewMedicine = $this->viewMedicineId ? Medicine::with(['category', 'batches.supplier', 'packagings.unit', 'inventory', 'stockMovements' => fn($q) => $q->latest()->take(10)])->find($this->viewMedicineId) : null;
+        $barcodeMedicine = $this->barcodeMedicineId ? Medicine::with(['batches', 'packagings'])->find($this->barcodeMedicineId) : null;
+
+        // Auto-suggestions
         if ($this->product_type === 'general') {
             $standardProducts = [
                 'Lux Beauty Soap 100g', 'Lux Soap Rose 140g', 'Dettol Soap Original 100g', 'Dettol Cool Soap 100g',
@@ -700,7 +1360,6 @@ class AddMedicine extends Component
         $suggestedProductNames = collect(array_merge($standardProducts, $dbProducts))->unique()->sort()->values();
         $suggestedBrands = collect(array_merge($standardBrands, $dbBrands))->unique()->sort()->values();
 
-        // 2. Suggested Generic Names
         $standardGenerics = [
             'Paracetamol', 'Ibuprofen', 'Amoxicillin', 'Amoxicillin + Clavulanic Acid (Co-Amoxiclav)',
             'Ciprofloxacin', 'Omeprazole', 'Esomeprazole', 'Azithromycin', 'Metformin HCl',
@@ -720,7 +1379,6 @@ class AddMedicine extends Component
         $dbGenerics = Medicine::whereNotNull('generic_name')->where('generic_name', '!=', '')->distinct()->pluck('generic_name')->toArray();
         $suggestedGenerics = collect(array_merge($standardGenerics, $dbGenerics))->unique()->sort()->values();
 
-        // 3. Suggested Manufacturers
         $standardManufacturers = [
             'GlaxoSmithKline (GSK) Pakistan Ltd', 'Abbott Laboratories Pakistan Ltd',
             'Getz Pharma (Pvt) Ltd', 'The Searle Company Ltd', 'Sanofi-Aventis Pakistan Ltd',
@@ -735,7 +1393,6 @@ class AddMedicine extends Component
         $dbManufacturers = Medicine::whereNotNull('manufacturer')->where('manufacturer', '!=', '')->distinct()->pluck('manufacturer')->toArray();
         $suggestedManufacturers = collect(array_merge($standardManufacturers, $dbManufacturers))->unique()->sort()->values();
 
-        // 4. Suggested Dosage Forms & Strengths
         $suggestedDosageForms = [
             'Tablet', 'Film-Coated Tablet', 'Dispersible Tablet', 'Chewable Tablet',
             'Effervescent Tablet', 'Capsule', 'Softgel Capsule', 'Syrup', 'Suspension',
@@ -758,9 +1415,15 @@ class AddMedicine extends Component
             'suppliers' => $suppliers,
             'availableUnits' => $availableUnits,
             'totalMedicines' => $totalMedicines,
+            'totalMedicineProducts' => $totalMedicineProducts,
+            'totalGeneralProducts' => $totalGeneralProducts,
             'totalStock' => $totalStock,
+            'totalStockValue' => $totalStockValue,
             'lowStock' => $lowStock,
             'expired' => $expired,
+            'nearExpiry' => $nearExpiry,
+            'viewMedicine' => $viewMedicine,
+            'barcodeMedicine' => $barcodeMedicine,
             'suggestedProductNames' => $suggestedProductNames,
             'suggestedBrands' => $suggestedBrands,
             'suggestedGenerics' => $suggestedGenerics,
