@@ -112,8 +112,10 @@
                                     {{-- Medicine Name --}}
                                     <td class="py-3 px-2">
                                         <input type="text"
+                                               list="bulk-product-name-suggestions"
                                                wire:model="rows.{{ $index }}.name"
                                                placeholder="e.g. Panadol 500mg"
+                                               autocomplete="off"
                                                class="w-full h-9 px-2.5 border rounded-lg text-xs transition focus:outline-none focus:ring-2 {{ $errors->has("rows.{$index}.name") ? 'border-red-400 focus:ring-red-200 bg-red-50/30' : 'border-slate-200 focus:ring-emerald-200 focus:border-emerald-400' }}">
                                         @error("rows.{$index}.name")
                                             <span class="text-[10px] text-red-500 font-medium block mt-1 leading-tight">{{ $message }}</span>
@@ -273,6 +275,12 @@
     {{-- ============================================================= --}}
     {{-- BULK ADD SUGGESTION DATALISTS --}}
     {{-- ============================================================= --}}
+    <datalist id="bulk-product-name-suggestions">
+        @foreach($suggestedProductNames as $p)
+            <option value="{{ $p }}">
+        @endforeach
+    </datalist>
+
     <datalist id="bulk-brand-suggestions">
         @foreach($suggestedBrands as $b)
             <option value="{{ $b }}">

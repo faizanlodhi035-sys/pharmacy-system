@@ -143,17 +143,23 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-4">
 
-                    {{-- Product Name --}}
+                    {{-- Product Name (with Auto-Suggestions) --}}
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">
-                            Product Name <span class="text-red-500">*</span>
-                        </label>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-sm font-medium text-slate-700">
+                                Product Name <span class="text-red-500">*</span>
+                            </label>
+                            <span class="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                                <i class="fa-solid fa-wand-magic-sparkles text-[9px] text-emerald-500"></i> Auto-suggest
+                            </span>
+                        </div>
 
                         <input
                             type="text"
+                            list="product-name-suggestions"
                             wire:model.live.debounce.300ms="name"
                             class="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                            placeholder="{{ $product_type === 'general' ? 'e.g. Lux Soap 100g' : 'e.g. Panadol 500mg' }}"
+                            placeholder="{{ $product_type === 'general' ? 'e.g. Lux Soap 100g / Dettol Soap / Colgate' : 'e.g. Panadol 500mg / Augmentin 625mg' }}"
                             autocomplete="off"
                         >
                     </div>
@@ -1451,6 +1457,12 @@
     {{-- ============================================================= --}}
     {{-- AUTO-SUGGESTION DATALISTS --}}
     {{-- ============================================================= --}}
+    <datalist id="product-name-suggestions">
+        @foreach($suggestedProductNames as $pn)
+            <option value="{{ $pn }}">
+        @endforeach
+    </datalist>
+
     <datalist id="brand-suggestions">
         @foreach($suggestedBrands as $b)
             <option value="{{ $b }}">

@@ -219,6 +219,16 @@ class BulkAddMedicine extends Component
     {
         $categories = Category::forProductType('medicine')->orderBy('name')->get();
 
+        $standardMedicineProducts = [
+            'Panadol 500mg', 'Panadol Extra', 'Panadol CF', 'Disprin 300mg', 'Brufen 400mg', 'Brufen DS',
+            'Augmentin 625mg', 'Augmentin 1g', 'Flagyl 400mg', 'Arinac Forte', 'Flyxotic 500mg',
+            'Risek 20mg', 'Risek 40mg', 'Kestine 10mg', 'Softin 10mg', 'Rigix 10mg', 'Gravinate 50mg',
+            'Buscopan 10mg', 'Ponstan 500mg', 'Ponstan Forte', 'CaC 1000 Plus', 'Surbex Z', 'Neurobion',
+            'Hydryllin Syrup', 'Polyfax Skin Ointment', 'Fastum Gel', 'Voltral Emulgel', 'Calamox 625mg'
+        ];
+        $dbProducts = Medicine::pluck('name')->toArray();
+        $suggestedProductNames = collect(array_merge($standardMedicineProducts, $dbProducts))->unique()->sort()->values();
+
         $standardBrands = [
             'GSK (GlaxoSmithKline)', 'Abbott Laboratories', 'Getz Pharma', 'The Searle Company',
             'Sanofi-Aventis', 'Sami Pharmaceuticals', 'Hilton Pharma', 'Pfizer', 'Novartis',
@@ -253,6 +263,7 @@ class BulkAddMedicine extends Component
 
         return view('livewire.admin.bulk-add-medicine', [
             'categories' => $categories,
+            'suggestedProductNames' => $suggestedProductNames,
             'suggestedBrands' => $suggestedBrands,
             'suggestedGenerics' => $suggestedGenerics,
             'suggestedManufacturers' => $suggestedManufacturers,

@@ -635,16 +635,69 @@ class AddMedicine extends Component
         $suppliers = Supplier::orderBy('name')->get();
         $availableUnits = Unit::active()->orderBy('name')->get();
 
-        // 1. Suggested Brands
-        $standardBrands = [
-            'GSK (GlaxoSmithKline)', 'Abbott Laboratories', 'Getz Pharma', 'The Searle Company',
-            'Sanofi-Aventis', 'Sami Pharmaceuticals', 'Hilton Pharma', 'Pfizer', 'Novartis',
-            'Bayer', 'Ferozsons Laboratories', 'CCL Pharmaceuticals', 'Bosch Pharmaceuticals',
-            'PharmEvo', 'Highnoon Laboratories', 'Platinum Pharmaceuticals', 'AGP Limited',
-            'Martin Dow Marker', 'Barrett Hodgson', 'Macter International', 'Reckitt Benckiser',
-            'Unilever', 'Procter & Gamble', 'Nestle', 'Johnson & Johnson', 'Colgate-Palmolive'
-        ];
-        $dbBrands = Medicine::whereNotNull('brand')->where('brand', '!=', '')->distinct()->pluck('brand')->toArray();
+        // 1. Suggested Product Names (Tailored to Product Type)
+        if ($this->product_type === 'general') {
+            $standardProducts = [
+                'Lux Beauty Soap 100g', 'Lux Soap Rose 140g', 'Dettol Soap Original 100g', 'Dettol Cool Soap 100g',
+                'Lifebuoy Total Soap 100g', 'Safeguard Pure White 100g', 'Dove White Beauty Bar 100g', 'Palmolive Soap 100g',
+                'Sunsilk Black Shine Shampoo 180ml', 'Sunsilk Soft & Smooth Shampoo 180ml', 'Head & Shoulders Classic Clean 180ml',
+                'Pantene Pro-V Shampoo 180ml', 'Dove Intense Repair Shampoo 180ml', 'Lifebuoy Shampoo 175ml',
+                'Colgate Maximum Cavity Protection 100g', 'Colgate Total 100g', 'Sensodyne Rapid Relief 100g',
+                'Sensodyne Multi Care 100g', 'Close Up Deep Action 100g', 'Oral-B Toothbrush Medium',
+                'Aquafina Mineral Water 500ml', 'Aquafina Mineral Water 1.5L', 'Nestle Pure Life 500ml', 'Nestle Pure Life 1.5L',
+                'Pampers Active Baby Size 3 (56 Diapers)', 'Pampers Premium Protection Size 4', 'Huggies Extra Care Diapers Size 3',
+                'Canbebe Baby Diapers Size 4', 'Johnson\'s Baby Shampoo 200ml', 'Johnson\'s Baby Oil 200ml', 'Johnson\'s Baby Powder 200g',
+                'Johnson\'s Baby Lotion 200ml', 'Johnson\'s Baby Wipes (80 Pack)', 'Dettol Disinfectant Liquid 500ml',
+                'Dettol Antiseptic Liquid 100ml', 'Vaseline Petroleum Jelly Original 100ml', 'Nivea Soft Moisturizing Cream 100ml',
+                'Nivea Crème Tin 100ml', 'Gillette Mach 3 Razor', 'Gillette Blue 2 Plus (5 Pack)', 'Gillette Foamy Shaving Foam 200ml',
+                'Lipton Yellow Label Tea 400g', 'Tapal Danedar Tea 400g', 'Everyday Tea Whitener 375g',
+                'Olper\'s Milk 1 Liter', 'Nestle MilkPak 1 Liter', 'Red Bull Energy Drink 250ml', 'Sting Energy Drink 300ml',
+                'Hand Sanitizer Gel 500ml', 'KN95 Protective Face Masks (10 Pack)', 'Surgical Face Masks 3-Ply (50 Pack)',
+                'Crepe Bandage 4 Inch (1 Roll)', 'Cotton Wool Absorbent 100g', 'First Aid Adhesive Bandages (100 Strips)',
+                'Pyodine Solution 60ml', 'Digital Thermometer'
+            ];
+            $dbProducts = Medicine::where('product_type', 'general')->pluck('name')->toArray();
+
+            $standardBrands = [
+                'Unilever', 'Procter & Gamble (P&G)', 'Nestle Pakistan', 'Reckitt Benckiser', 'Colgate-Palmolive',
+                'Johnson & Johnson', 'Engro Foods', 'National Foods', 'Shan Foods', 'Tapal Tea',
+                'Lipton', 'Dalda Foods', 'Hilal Confectionery', 'Shield Corporation', 'Canbebe / Ontex',
+                'Kimberly-Clark (Huggies)', 'Pampers', 'Nivea (Beiersdorf)', 'L\'Oreal Pakistan',
+                'Gillette', 'Dettol', 'Lux', 'Lifebuoy', 'Sunsilk', 'Safeguard', 'Head & Shoulders',
+                'Dove', 'Vaseline', 'Coca-Cola Company', 'PepsiCo', 'Aquafina', 'Nestle Pure Life',
+                'Mitchell\'s', 'Mitchell\'s Farms', 'English Biscuits (Peek Freans)',
+                'Continental Biscuits (LU)', 'Knorr', 'Rafhan', 'Marico (Parachute)', 'Dabur'
+            ];
+            $dbBrands = Medicine::where('product_type', 'general')->whereNotNull('brand')->where('brand', '!=', '')->distinct()->pluck('brand')->toArray();
+        } else {
+            $standardProducts = [
+                'Panadol 500mg (Tablet)', 'Panadol Extra (Tablet)', 'Panadol CF (Tablet)', 'Panadol Children Syrup 120ml',
+                'Disprin 300mg (Effervescent Tablet)', 'Disprin Direct (Tablet)', 'Brufen 400mg (Tablet)', 'Brufen 600mg (Tablet)',
+                'Brufen DS Suspension 120ml', 'Augmentin 625mg (Tablet)', 'Augmentin 1g (Tablet)', 'Augmentin DS Syrup 156.25mg/5ml',
+                'Flagyl 400mg (Tablet)', 'Flagyl 200mg/5ml Suspension 60ml', 'Arinac Forte (Tablet)', 'Arinac Syrup 60ml',
+                'Flyxotic 500mg (Tablet)', 'Ciproxin 500mg (Tablet)', 'Risek 20mg (Capsule)', 'Risek 40mg (Capsule)', 'Risek 40mg (Insta Sachet)',
+                'Kestine 10mg (Tablet)', 'Softin 10mg (Tablet)', 'Rigix 10mg (Tablet)', 'Zyrtec 10mg (Tablet)', 'Gravinate 50mg (Tablet)',
+                'Buscopan 10mg (Tablet)', 'Buscopan Plus (Tablet)', 'Ponstan 500mg (Tablet)', 'Ponstan Forte (Tablet)',
+                'CaC 1000 Plus Effervescent (10 Tablets)', 'Surbex Z (Tablet)', 'Neurobion (Tablet)', 'Neurobion Injection',
+                'Entox-P (Tablet)', 'Hydryllin Syrup 120ml', 'Pulmonol Syrup 120ml', 'Acefyl Syrup 120ml', 'T-Day 5mg (Tablet)',
+                'Polyfax Skin Ointment 20g', 'Polyfax Eye Ointment 6g', 'Fastum Gel 50g', 'Voltral Emulgel 1% 50g',
+                'Calamox 625mg (Tablet)', 'Novidat 500mg (Tablet)', 'Leflox 500mg (Tablet)', 'Velosef 500mg (Capsule)',
+                'Methycobal 500mcg (Tablet)', 'Gabbro 500mg (Tablet)', 'Lowplat 75mg (Tablet)', 'Ascard 75mg (Tablet)'
+            ];
+            $dbProducts = Medicine::where('product_type', 'medicine')->pluck('name')->toArray();
+
+            $standardBrands = [
+                'GSK (GlaxoSmithKline)', 'Abbott Laboratories', 'Getz Pharma', 'The Searle Company',
+                'Sanofi-Aventis', 'Sami Pharmaceuticals', 'Hilton Pharma', 'Pfizer Pakistan', 'Novartis',
+                'Bayer Pakistan', 'Ferozsons Laboratories', 'CCL Pharmaceuticals', 'Bosch Pharmaceuticals',
+                'PharmEvo', 'Highnoon Laboratories', 'Platinum Pharmaceuticals', 'AGP Limited',
+                'Martin Dow Marker', 'Barrett Hodgson', 'Macter International', 'Reckitt Benckiser Health',
+                'Bio-Labs', 'Atco Laboratories', 'Zafa Pharmaceuticals', 'BPL', 'Remington Pharma'
+            ];
+            $dbBrands = Medicine::where('product_type', 'medicine')->whereNotNull('brand')->where('brand', '!=', '')->distinct()->pluck('brand')->toArray();
+        }
+
+        $suggestedProductNames = collect(array_merge($standardProducts, $dbProducts))->unique()->sort()->values();
         $suggestedBrands = collect(array_merge($standardBrands, $dbBrands))->unique()->sort()->values();
 
         // 2. Suggested Generic Names
@@ -676,7 +729,8 @@ class AddMedicine extends Component
             'CCL Pharmaceuticals (Pvt) Ltd', 'Bosch Pharmaceuticals (Pvt) Ltd', 'PharmEvo (Pvt) Ltd',
             'Highnoon Laboratories Ltd', 'Platinum Pharmaceuticals', 'AGP Limited',
             'Martin Dow Marker Ltd', 'Barrett Hodgson Pakistan', 'Macter International Ltd',
-            'Reckitt Benckiser Pakistan', 'Unilever Pakistan', 'Procter & Gamble Pakistan'
+            'Reckitt Benckiser Pakistan', 'Unilever Pakistan Ltd', 'Procter & Gamble Pakistan Ltd',
+            'Nestle Pakistan Ltd', 'Colgate-Palmolive Pakistan Ltd', 'Engro Foods Pakistan'
         ];
         $dbManufacturers = Medicine::whereNotNull('manufacturer')->where('manufacturer', '!=', '')->distinct()->pluck('manufacturer')->toArray();
         $suggestedManufacturers = collect(array_merge($standardManufacturers, $dbManufacturers))->unique()->sort()->values();
@@ -707,6 +761,7 @@ class AddMedicine extends Component
             'totalStock' => $totalStock,
             'lowStock' => $lowStock,
             'expired' => $expired,
+            'suggestedProductNames' => $suggestedProductNames,
             'suggestedBrands' => $suggestedBrands,
             'suggestedGenerics' => $suggestedGenerics,
             'suggestedManufacturers' => $suggestedManufacturers,
