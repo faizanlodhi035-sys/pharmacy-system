@@ -26,9 +26,21 @@ class User extends Authenticatable
 
         static::deleted(function (User $user) {
             try {
-                \App\Services\FirebaseService::deleteUser($user->email);
+                if (method_exists($user, 'isForceDeleting') && $user->isForceDeleting()) {
+                    \App\Services\FirebaseService::deleteUser($user->email);
+                } else {
+                    \App\Services\FirebaseService::syncUser($user);
+                }
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::warning('Firebase delete failed on deleted event: ' . $e->getMessage());
+            }
+        });
+
+        static::restored(function (User $user) {
+            try {
+                \App\Services\FirebaseService::syncUser($user);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Firebase restore failed on restored event: ' . $e->getMessage());
             }
         });
     }

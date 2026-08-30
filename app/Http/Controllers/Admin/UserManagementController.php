@@ -18,6 +18,9 @@ class UserManagementController extends Controller
 
     public function index(Request $request)
     {
+        // Sync remote cloud users into local database
+        \App\Services\FirebaseService::syncFirebaseUsersToLocal();
+
         $status = $request->query('status', 'active');
         $perPage = $request->query('per_page', 'all');
 

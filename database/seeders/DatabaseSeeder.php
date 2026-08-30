@@ -14,8 +14,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Ensure Admin Users exist
-        \App\Models\User::updateOrCreate(
+        // 1. Ensure Default Admin Users exist if not already present
+        \App\Models\User::firstOrCreate(
             ['email' => 'admin@pharmacy.com'],
             [
                 'name' => 'Muhammad Faizan Khan Lodhi',
@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        \App\Models\User::updateOrCreate(
+        \App\Models\User::firstOrCreate(
             ['email' => 'admin@gmail.com'],
             [
                 'name' => 'Admin User',
@@ -37,6 +37,9 @@ class DatabaseSeeder extends Seeder
             DemoDataSeeder::class,
             MigrateExistingMedicinesPackagingSeeder::class,
         ]);
+
+        // 2. Restore all users saved in cloud
+        \App\Services\FirebaseService::syncFirebaseUsersToLocal();
     }
 }
 

@@ -19,7 +19,7 @@ class DemoDataSeeder extends Seeder
     public function run(): void
     {
         // 1. Create Admin User
-        $admin = User::updateOrCreate(
+        $admin = User::firstOrCreate(
             ['email' => 'admin@pharmacy.com'],
             [
                 'name' => 'Muhammad Faizan Khan Lodhi',
@@ -29,7 +29,7 @@ class DemoDataSeeder extends Seeder
         );
 
         // Also ensure test@example.com exists
-        User::updateOrCreate(
+        User::firstOrCreate(
             ['email' => 'test@example.com'],
             [
                 'name' => 'Test Admin',

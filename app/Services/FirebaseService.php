@@ -23,19 +23,20 @@ class FirebaseService
     public static function syncUser(User $user): bool
     {
         try {
-            $url = self::getDbUrl() . "/users/" . md5($user->email) . ".json";
+            $url = self::getDbUrl() . "/users/" . md5(strtolower(trim($user->email))) . ".json";
             
             $payload = [
                 'id' => $user->id,
                 'name' => $user->name,
-                'email' => $user->email,
+                'email' => strtolower(trim($user->email)),
                 'role' => $user->role ?? 'admin',
                 'password' => $user->password,
+                'deleted_at' => $user->deleted_at?->toIso8601String(),
                 'created_at' => $user->created_at?->toIso8601String() ?? now()->toIso8601String(),
                 'updated_at' => now()->toIso8601String(),
             ];
 
-            $response = Http::timeout(3)->put($url, $payload);
+            $response = Http::timeout(4)->put($url, $payload);
             return $response->successful();
         } catch (\Throwable $e) {
             Log::error('Firebase syncUser error: ' . $e->getMessage());
@@ -49,8 +50,8 @@ class FirebaseService
     public static function deleteUser(string $email): bool
     {
         try {
-            $url = self::getDbUrl() . "/users/" . md5($email) . ".json";
-            $response = Http::timeout(3)->delete($url);
+            $url = self::getDbUrl() . "/users/" . md5(strtolower(trim($email))) . ".json";
+            $response = Http::timeout(4)->delete($url);
             return $response->successful();
         } catch (\Throwable $e) {
             Log::error('Firebase deleteUser error: ' . $e->getMessage());
@@ -65,7 +66,7 @@ class FirebaseService
     {
         try {
             $url = self::getDbUrl() . "/users.json";
-            $response = Http::timeout(3)->get($url);
+            $response = Http::timeout(4)->get($url);
             
             if ($response->successful()) {
                 $data = $response->json();
@@ -91,17 +92,51 @@ class FirebaseService
             foreach ($fbUsers as $key => $fbData) {
                 if (empty($fbData['email'])) continue;
 
-                $existingUser = User::withTrashed()->where('email', $fbData['email'])->first();
+                $email = strtolower(trim($fbData['email']));
+                $existingUser = User::withTrashed()->where('email', $email)->first();
+
                 if ($existingUser) {
-                    continue; // Preserve local user data as primary
+                    // Update role or trash status if changed remotely
+                    $dirty = false;
+                    if (!empty($fbData['role']) && $existingUser->role !== $fbData['role']) {
+                        $existingUser->role = $fbData['role'];
+                        $dirty = true;
+                    }
+                    if (!empty($fbData['deleted_at']) && !$existingUser->trashed()) {
+                        $existingUser->deleted_at = $fbData['deleted_at'];
+                        $dirty = true;
+                    } elseif (empty($fbData['deleted_at']) && $existingUser->trashed()) {
+                        $existingUser->deleted_at = null;
+                        $dirty = true;
+                    }
+                    if ($dirty) {
+                        $existingUser->saveQuietly();
+                    }
+                    continue;
                 }
 
                 $user = new User();
                 $user->name = $fbData['name'] ?? 'Pharmacy User';
-                $user->email = $fbData['email'];
+                $user->email = $email;
                 $user->role = $fbData['role'] ?? 'admin';
-                $user->password = !empty($fbData['password']) ? $fbData['password'] : 'admin123';
-                $user->save();
+                
+                // Preserve raw password hash
+                if (!empty($fbData['password'])) {
+                    $user->setRawAttributes(array_merge($user->getAttributes(), [
+                        'name' => $fbData['name'] ?? 'Pharmacy User',
+                        'email' => $email,
+                        'role' => $fbData['role'] ?? 'admin',
+                        'password' => $fbData['password'],
+                    ]));
+                } else {
+                    $user->password = 'admin123';
+                }
+
+                if (!empty($fbData['deleted_at'])) {
+                    $user->deleted_at = $fbData['deleted_at'];
+                }
+
+                $user->saveQuietly();
             }
         } catch (\Throwable $e) {
             Log::error('Firebase syncFirebaseUsersToLocal error: ' . $e->getMessage());
@@ -114,13 +149,15 @@ class FirebaseService
     public static function ensureDatabaseSeeded(): void
     {
         try {
+            self::syncFirebaseUsersToLocal();
+
             if (User::withTrashed()->count() === 0) {
                 $admin = new User();
                 $admin->name = 'Muhammad Faizan Khan Lodhi';
                 $admin->email = 'admin@pharmacy.com';
                 $admin->role = 'admin';
                 $admin->password = 'admin123';
-                $admin->save();
+                $admin->saveQuietly();
             }
         } catch (\Throwable $e) {
             Log::error('ensureDatabaseSeeded error: ' . $e->getMessage());
