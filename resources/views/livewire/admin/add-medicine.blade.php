@@ -160,18 +160,19 @@
 
                     {{-- Category (Smart Searchable Auto-Suggest Dropdown & Quick Create) --}}
                     <div 
+                        wire:key="category-picker-{{ $product_type }}-{{ $category_id }}"
                         x-data="{
                             open: false,
-                            search: @entangle('category_search').live,
-                            selectedId: @entangle('category_id').live,
+                            search: @js((string)$category_search),
+                            selectedId: @js((string)$category_id),
                             categories: {{ Js::from($formCategories->map(fn($c) => ['id' => (string)$c->id, 'name' => $c->name, 'type' => $c->product_type ?? 'both'])) }},
                             get filtered() {
-                                if (!this.search || this.search.trim() === '') return this.categories;
+                                if (!this.search || typeof this.search !== 'string' || this.search.trim() === '') return this.categories;
                                 const q = this.search.toLowerCase().trim();
                                 return this.categories.filter(c => c.name.toLowerCase().includes(q));
                             },
                             get exactMatch() {
-                                if (!this.search) return null;
+                                if (!this.search || typeof this.search !== 'string') return null;
                                 const q = this.search.toLowerCase().trim();
                                 return this.categories.find(c => c.name.toLowerCase() === q);
                             },
@@ -188,7 +189,7 @@
                                 this.open = false;
                             },
                             createCategory() {
-                                if (this.search && this.search.trim() !== '') {
+                                if (this.search && typeof this.search === 'string' && this.search.trim() !== '') {
                                     $wire.quickCreateCategory(this.search.trim());
                                     this.open = false;
                                 }
