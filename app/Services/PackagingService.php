@@ -448,6 +448,8 @@ class PackagingService
                 'batch_id' => $batch->id,
                 'batch_number' => $batch->batch_number,
                 'base_quantity' => $take,
+                'allocated_quantity' => $take,
+                'allocated_base_quantity' => $take,
                 'expiry_date' => $batch->expiry_date?->format('Y-m-d'),
                 'purchase_price' => $batch->purchase_price,
                 'selling_price' => $batch->selling_price,

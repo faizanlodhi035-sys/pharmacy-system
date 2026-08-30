@@ -442,7 +442,7 @@ class PosCounter extends Component
 
                     foreach ($allocatedBatches as $allocation) {
                         $batch = $allocation['batch'];
-                        $deductedBase = $allocation['allocated_quantity'];
+                        $deductedBase = (float)($allocation['allocated_quantity'] ?? $allocation['base_quantity'] ?? $allocation['allocated_base_quantity'] ?? 0);
 
                         // Calculate item proportion if split across batches
                         $itemQtyProportion = $baseQuantityNeeded > 0 ? ($deductedBase / $baseQuantityNeeded) * $item['qty'] : $item['qty'];

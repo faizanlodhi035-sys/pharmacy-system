@@ -26,11 +26,33 @@ class PosCounterTest extends TestCase
             'base_unit' => 'Tablet',
         ]);
 
+        \App\Models\MedicineBatch::create([
+            'medicine_id' => $medicine->id,
+            'batch_number' => 'TEST-BATCH-001',
+            'quantity' => 100,
+            'purchase_price' => 15.00,
+            'selling_price' => 25.00,
+            'expiry_date' => now()->addYear()->toDateString(),
+            'status' => 'active',
+        ]);
+
         Livewire::actingAs($user)
             ->test(PosCounter::class)
             ->call('addToCart', $medicine->id)
             ->assertSet('cart', function ($cart) {
                 return count($cart) === 1;
-            });
+            })
+            ->call('checkout')
+            ->assertSet('showInvoiceModal', true)
+            ->assertSet('cart', []);
+
+        $this->assertDatabaseHas('sales', [
+            'total_amount' => 25.00,
+        ]);
+        $this->assertDatabaseHas('sale_items', [
+            'medicine_id' => $medicine->id,
+            'quantity' => 1,
+            'base_quantity' => 1,
+        ]);
     }
 }
