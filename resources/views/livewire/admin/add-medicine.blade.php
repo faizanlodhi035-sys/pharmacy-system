@@ -413,20 +413,27 @@
                         </div>
                     @endif
 
-                    {{-- Initial Quantity & Unit Selection --}}
+                    {{-- Initial Quantity & Unit Selection (with Auto-Suggestions & Quick Presets) --}}
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">
-                            Initial Stock Quantity <span class="text-red-500">*</span>
-                        </label>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-sm font-medium text-slate-700">
+                                Initial Stock Quantity <span class="text-red-500">*</span>
+                            </label>
+                            <span class="text-[10px] text-slate-400 font-medium flex items-center gap-1">
+                                <i class="fa-solid fa-wand-magic-sparkles text-[9px] text-emerald-500"></i> Auto-suggest
+                            </span>
+                        </div>
 
                         <div class="grid grid-cols-2 gap-2">
                             <input
                                 type="number"
                                 min="0"
                                 step="any"
+                                list="stock-qty-suggestions"
                                 wire:model.live="quantity"
                                 class="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                                placeholder="e.g. 5"
+                                placeholder="e.g. 10"
+                                autocomplete="off"
                             >
 
                             <select
@@ -442,6 +449,21 @@
                                 @endif
                             </select>
                         </div>
+
+                        {{-- Quick Suggestion Pills --}}
+                        <div class="flex items-center gap-1 mt-1.5 flex-wrap">
+                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-0.5">Quick:</span>
+                            @foreach(['5', '10', '20', '50', '100', '200', '500'] as $qtyPreset)
+                                <button 
+                                    type="button" 
+                                    wire:click="$set('quantity', '{{ $qtyPreset }}')" 
+                                    class="px-1.5 py-0.5 text-[10px] font-bold rounded-md border transition {{ (string)$quantity === (string)$qtyPreset ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200' }}"
+                                >
+                                    {{ $qtyPreset }}
+                                </button>
+                            @endforeach
+                        </div>
+
                         @if((float)$quantity > 0)
                             @php
                                 $cMultiplier = 1;
@@ -1446,6 +1468,19 @@
         @foreach($suggestedStrengths as $st)
             <option value="{{ $st }}">
         @endforeach
+    </datalist>
+
+    <datalist id="stock-qty-suggestions">
+        <option value="5">
+        <option value="10">
+        <option value="20">
+        <option value="25">
+        <option value="50">
+        <option value="100">
+        <option value="200">
+        <option value="250">
+        <option value="500">
+        <option value="1000">
     </datalist>
 
     {{-- ============================================================= --}}
