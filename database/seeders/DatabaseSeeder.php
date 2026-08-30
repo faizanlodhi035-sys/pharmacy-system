@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DatabaseSeeder extends Seeder
 {
@@ -33,16 +35,16 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // 2. Seed Clean Master Categories & Units (NO demo medicines or transactions)
         $this->call([
             DemoDataSeeder::class,
-            MigrateExistingMedicinesPackagingSeeder::class,
         ]);
 
-        // 2. Restore all users saved in cloud
-        \App\Services\FirebaseService::syncFirebaseUsersToLocal();
+        // 3. Restore all users saved in cloud
+        try {
+            \App\Services\FirebaseService::syncFirebaseUsersToLocal();
+        } catch (\Throwable $e) {
+            // ignore network issues during local/build
+        }
     }
 }
-
-
-
-
