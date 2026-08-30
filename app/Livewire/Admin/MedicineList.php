@@ -97,6 +97,27 @@ class MedicineList extends Component
     public bool $barcodeShowExpiry = true;
     public bool $barcodeShowGeneric = false;
 
+    public function mount(): void
+    {
+        Medicine::where('status', 'inactive')
+            ->orWhereIn('name', ['Paracetamol 500mg', 'Panadol Extra', 'Lux Beauty Soap 100g', 'Nestle Pure Life 1.5L'])
+            ->get()
+            ->each(function ($med) {
+                DB::table('sale_items')->where('medicine_id', $med->id)->delete();
+                DB::table('sales_return_items')->where('medicine_id', $med->id)->delete();
+                DB::table('purchase_return_items')->where('medicine_id', $med->id)->delete();
+                DB::table('purchase_invoice_items')->where('medicine_id', $med->id)->delete();
+                if (\Illuminate\Support\Facades\Schema::hasTable('hold_invoices')) {
+                    DB::table('hold_invoices')->where('medicine_id', $med->id)->delete();
+                }
+                StockMovement::where('medicine_id', $med->id)->delete();
+                MedicineBatch::where('medicine_id', $med->id)->delete();
+                MedicinePackaging::where('medicine_id', $med->id)->delete();
+                Inventory::where('medicine_id', $med->id)->delete();
+                $med->delete();
+            });
+    }
+
     public function updatingSearch(): void { $this->resetPage(); }
     public function updatingProductTypeFilter(): void { $this->resetPage(); }
     public function updatingCategoryFilter(): void { $this->resetPage(); }
