@@ -423,22 +423,24 @@ class MedicineList extends Component
         try {
             DB::transaction(function () use ($medicine) {
                 $id = $medicine->id;
-                $hasSales = DB::table('sale_items')->where('medicine_id', $id)->exists();
-                $hasPurchases = DB::table('purchase_invoice_items')->where('medicine_id', $id)->exists();
 
-                if ($hasSales || $hasPurchases) {
-                    $medicine->update(['status' => 'inactive']);
-                    MedicineBatch::where('medicine_id', $id)->update(['status' => 'archived', 'quantity' => 0]);
-                    Inventory::where('medicine_id', $id)->update(['total_base_quantity' => 0, 'available_base_quantity' => 0]);
-                    session()->flash('warning', "Product '{$medicine->name}' has sales history. It was deactivated to protect financial records.");
-                } else {
-                    StockMovement::where('medicine_id', $id)->delete();
-                    MedicineBatch::where('medicine_id', $id)->delete();
-                    MedicinePackaging::where('medicine_id', $id)->delete();
-                    Inventory::where('medicine_id', $id)->delete();
-                    $medicine->delete();
-                    session()->flash('message', "Product '{$medicine->name}' deleted successfully.");
+                DB::table('sale_items')->where('medicine_id', $id)->delete();
+                DB::table('sales_return_items')->where('medicine_id', $id)->delete();
+                DB::table('purchase_return_items')->where('medicine_id', $id)->delete();
+                DB::table('purchase_invoice_items')->where('medicine_id', $id)->delete();
+                if (\Illuminate\Support\Facades\Schema::hasTable('hold_invoices')) {
+                    DB::table('hold_invoices')->where('medicine_id', $id)->delete();
                 }
+
+                StockMovement::where('medicine_id', $id)->delete();
+                MedicineBatch::where('medicine_id', $id)->delete();
+                MedicinePackaging::where('medicine_id', $id)->delete();
+                Inventory::where('medicine_id', $id)->delete();
+
+                $medicineName = $medicine->name;
+                $medicine->delete();
+
+                session()->flash('message', "Product '{$medicineName}' deleted permanently.");
             });
         } catch (\Exception $e) {
             session()->flash('error', 'Could not delete product: ' . $e->getMessage());
@@ -458,17 +460,14 @@ class MedicineList extends Component
                 $medicineId = $batch->medicine_id;
                 $batchNum = $batch->batch_number;
 
-                $hasSales = DB::table('sale_items')->where('batch_id', $batchId)->exists();
-                if ($hasSales) {
-                    $batch->update(['quantity' => 0, 'status' => 'depleted']);
-                    session()->flash('warning', "Batch '{$batchNum}' has past sales. Its stock was zeroed and marked depleted.");
-                } else {
-                    StockMovement::where('batch_id', $batchId)->delete();
-                    $batch->delete();
-                    session()->flash('message', "Batch '{$batchNum}' deleted successfully.");
-                }
+                DB::table('sale_items')->where('batch_id', $batchId)->delete();
+                DB::table('sales_return_items')->where('batch_id', $batchId)->delete();
+                DB::table('purchase_return_items')->where('batch_id', $batchId)->delete();
+                StockMovement::where('batch_id', $batchId)->delete();
+                $batch->delete();
 
                 app(StockLedgerService::class)->syncInventory($medicineId);
+                session()->flash('message', "Batch '{$batchNum}' deleted permanently.");
             });
         } catch (\Exception $e) {
             session()->flash('error', 'Error deleting batch: ' . $e->getMessage());
@@ -497,29 +496,27 @@ class MedicineList extends Component
         }
 
         $count = 0;
-        $archived = 0;
 
-        DB::transaction(function () use (&$count, &$archived) {
+        DB::transaction(function () use (&$count) {
             foreach ($this->selectedMedicines as $id) {
                 $medicine = Medicine::find($id);
                 if (!$medicine) continue;
 
-                $hasSales = DB::table('sale_items')->where('medicine_id', $id)->exists()
-                    || DB::table('purchase_invoice_items')->where('medicine_id', $id)->exists();
-
-                if ($hasSales) {
-                    $medicine->update(['status' => 'inactive']);
-                    MedicineBatch::where('medicine_id', $id)->update(['status' => 'archived', 'quantity' => 0]);
-                    Inventory::where('medicine_id', $id)->update(['total_base_quantity' => 0, 'available_base_quantity' => 0]);
-                    $archived++;
-                } else {
-                    StockMovement::where('medicine_id', $id)->delete();
-                    MedicineBatch::where('medicine_id', $id)->delete();
-                    MedicinePackaging::where('medicine_id', $id)->delete();
-                    Inventory::where('medicine_id', $id)->delete();
-                    $medicine->delete();
-                    $count++;
+                DB::table('sale_items')->where('medicine_id', $id)->delete();
+                DB::table('sales_return_items')->where('medicine_id', $id)->delete();
+                DB::table('purchase_return_items')->where('medicine_id', $id)->delete();
+                DB::table('purchase_invoice_items')->where('medicine_id', $id)->delete();
+                if (\Illuminate\Support\Facades\Schema::hasTable('hold_invoices')) {
+                    DB::table('hold_invoices')->where('medicine_id', $id)->delete();
                 }
+
+                StockMovement::where('medicine_id', $id)->delete();
+                MedicineBatch::where('medicine_id', $id)->delete();
+                MedicinePackaging::where('medicine_id', $id)->delete();
+                Inventory::where('medicine_id', $id)->delete();
+
+                $medicine->delete();
+                $count++;
             }
         });
 
@@ -527,11 +524,7 @@ class MedicineList extends Component
         $this->selectAll = false;
         $this->closeBulkDeleteModal();
 
-        $msg = "{$count} products deleted successfully.";
-        if ($archived > 0) {
-            $msg .= " ({$archived} products with sales history were deactivated).";
-        }
-        session()->flash('message', $msg);
+        session()->flash('message', "{$count} products deleted permanently.");
         $this->resetPage();
     }
 
