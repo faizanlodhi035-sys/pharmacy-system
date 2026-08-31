@@ -642,14 +642,139 @@
                                 </div>
 
                                 <div class="space-y-3">
-                                    <div>
-                                        <label class="block text-xs font-semibold text-slate-700 mb-1">Base Unit Name <span class="text-red-500">*</span></label>
-                                        <input type="text" list="base-units-list" wire:model.live="base_unit" class="w-full h-9 px-3 border border-emerald-300 rounded-lg text-sm bg-white font-medium" placeholder="Tablet">
-                                        <datalist id="base-units-list">
-                                            @foreach($availableUnits as $unit)
-                                                <option value="{{ $unit->name }}">{{ $unit->name }} ({{ $unit->symbol }})</option>
+                                    {{-- Base Unit Searchable Suggestion Dropdown --}}
+                                    <div 
+                                        x-data="{
+                                            open: false,
+                                            search: @entangle('base_unit').live,
+                                            units: {{ Js::from($availableUnits->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'symbol' => $u->symbol ?? ''])) }},
+                                            get filteredUnits() {
+                                                if (!this.search || this.search.trim() === '') return this.units;
+                                                const q = this.search.toLowerCase().trim();
+                                                return this.units.filter(u => u.name.toLowerCase().includes(q) || (u.symbol && u.symbol.toLowerCase().includes(q)));
+                                            },
+                                            selectUnit(name) {
+                                                this.search = name;
+                                                $wire.set('base_unit', name);
+                                                this.open = false;
+                                            }
+                                        }"
+                                        class="relative"
+                                        @click.outside="open = false"
+                                    >
+                                        <div class="flex items-center justify-between mb-1">
+                                            <label class="block text-xs font-semibold text-slate-700">
+                                                Base Unit Name <span class="text-red-500">*</span>
+                                            </label>
+                                            <span class="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+                                                <i class="fa-solid fa-wand-magic-sparkles text-[9px] text-emerald-600"></i> Auto-Suggest
+                                            </span>
+                                        </div>
+
+                                        <div class="relative">
+                                            <input 
+                                                type="text" 
+                                                x-model="search" 
+                                                @focus="open = true" 
+                                                @input="open = true" 
+                                                @keydown.escape="open = false"
+                                                class="w-full h-9 pl-3 pr-16 border border-emerald-300 rounded-lg text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-500 shadow-2xs" 
+                                                placeholder="e.g. Tablet, Capsule, Bottle"
+                                                autocomplete="off"
+                                            >
+                                            <div class="absolute inset-y-0 right-0 flex items-center pr-1.5 gap-0.5">
+                                                <template x-if="search && search.length > 0">
+                                                    <button 
+                                                        type="button" 
+                                                        @click="search = ''; $wire.set('base_unit', '');" 
+                                                        class="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-emerald-100/50"
+                                                        title="Clear"
+                                                    >
+                                                        <i class="fa-solid fa-xmark text-xs"></i>
+                                                    </button>
+                                                </template>
+                                                <button 
+                                                    type="button" 
+                                                    @click="open = !open" 
+                                                    class="p-1 text-emerald-700 hover:text-emerald-900 rounded-md hover:bg-emerald-100 transition"
+                                                    title="Select Unit"
+                                                >
+                                                    <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200" :class="open ? 'rotate-180' : ''"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {{-- Floating Dropdown Menu --}}
+                                        <div 
+                                            x-show="open" 
+                                            x-transition:enter="transition ease-out duration-150"
+                                            x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                                            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                            x-transition:leave="transition ease-in duration-100"
+                                            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                            x-transition:leave-end="opacity-0 translate-y-1 scale-95"
+                                            class="absolute z-50 left-0 right-0 mt-1 bg-white border border-emerald-200 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100 py-1"
+                                            style="display: none;"
+                                        >
+                                            <div class="px-3 py-1.5 bg-emerald-50/80 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                                                <span>Suggested Units</span>
+                                                <span x-text="filteredUnits.length + ' available'"></span>
+                                            </div>
+
+                                            <template x-for="u in filteredUnits" :key="u.id || u.name">
+                                                <button
+                                                    type="button"
+                                                    @click="selectUnit(u.name)"
+                                                    class="w-full text-left px-3 py-2 hover:bg-emerald-50 flex items-center justify-between text-xs transition group"
+                                                    :class="search === u.name ? 'bg-emerald-50 font-bold text-emerald-900' : 'text-slate-700'"
+                                                >
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">
+                                                            <i class="fa-solid fa-cube text-[9px]"></i>
+                                                        </span>
+                                                        <span x-text="u.name" class="font-medium"></span>
+                                                    </div>
+                                                    <div class="flex items-center gap-1.5">
+                                                        <template x-if="u.symbol">
+                                                            <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono" x-text="u.symbol"></span>
+                                                        </template>
+                                                        <template x-if="search === u.name">
+                                                            <i class="fa-solid fa-check text-emerald-600 text-xs"></i>
+                                                        </template>
+                                                    </div>
+                                                </button>
+                                            </template>
+
+                                            <template x-if="filteredUnits.length === 0 && search && search.trim() !== ''">
+                                                <div class="p-2.5 text-center">
+                                                    <button
+                                                        type="button"
+                                                        @click="selectUnit(search.trim())"
+                                                        class="w-full text-left px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-800 flex items-center justify-between transition"
+                                                    >
+                                                        <span class="flex items-center gap-1.5">
+                                                            <i class="fa-solid fa-plus text-emerald-600"></i>
+                                                            <span>Use custom: "<span x-text="search"></span>"</span>
+                                                        </span>
+                                                        <span class="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded">Custom</span>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </div>
+
+                                        {{-- Quick Suggested Pills --}}
+                                        <div class="flex items-center gap-1 mt-1.5 flex-wrap">
+                                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-0.5">Quick:</span>
+                                            @foreach(['Tablet', 'Capsule', 'Bottle', 'Vial', 'Ampoule', 'Tube', 'Sachet', 'Piece'] as $unitPill)
+                                                <button 
+                                                    type="button" 
+                                                    @click="selectUnit('{{ $unitPill }}')" 
+                                                    class="px-1.5 py-0.5 text-[10px] font-bold rounded-md border transition {{ $base_unit === $unitPill ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-white border-emerald-200 text-emerald-800 hover:bg-emerald-100' }}"
+                                                >
+                                                    {{ $unitPill }}
+                                                </button>
                                             @endforeach
-                                        </datalist>
+                                        </div>
                                     </div>
 
                                     <div class="grid grid-cols-2 gap-2">
@@ -688,14 +813,147 @@
                                 </div>
 
                                 <div class="space-y-3">
-                                    <div>
-                                        <label class="block text-xs font-semibold text-slate-700 mb-1">Secondary Unit (e.g. Strip)</label>
-                                        <input type="text" list="sec-units-list" wire:model.live="secondary_unit" class="w-full h-9 px-3 border border-blue-200 rounded-lg text-sm bg-white font-medium" placeholder="Strip">
-                                        <datalist id="sec-units-list">
-                                            @foreach($availableUnits as $unit)
-                                                <option value="{{ $unit->name }}">{{ $unit->name }}</option>
+                                    {{-- Secondary Unit Searchable Suggestion Dropdown --}}
+                                    <div 
+                                        x-data="{
+                                            open: false,
+                                            search: @entangle('secondary_unit').live,
+                                            units: {{ Js::from($availableUnits->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'symbol' => $u->symbol ?? ''])) }},
+                                            get filteredUnits() {
+                                                if (!this.search || this.search.trim() === '') return this.units;
+                                                const q = this.search.toLowerCase().trim();
+                                                return this.units.filter(u => u.name.toLowerCase().includes(q) || (u.symbol && u.symbol.toLowerCase().includes(q)));
+                                            },
+                                            selectUnit(name) {
+                                                this.search = name;
+                                                $wire.set('secondary_unit', name);
+                                                this.open = false;
+                                            }
+                                        }"
+                                        class="relative"
+                                        @click.outside="open = false"
+                                    >
+                                        <div class="flex items-center justify-between mb-1">
+                                            <label class="block text-xs font-semibold text-slate-700">Secondary Unit (e.g. Strip)</label>
+                                            <span class="text-[10px] text-blue-700 font-semibold flex items-center gap-1">
+                                                <i class="fa-solid fa-wand-magic-sparkles text-[9px] text-blue-600"></i> Suggestions
+                                            </span>
+                                        </div>
+
+                                        <div class="relative">
+                                            <input 
+                                                type="text" 
+                                                x-model="search" 
+                                                @focus="open = true" 
+                                                @input="open = true" 
+                                                @keydown.escape="open = false"
+                                                class="w-full h-9 pl-3 pr-16 border border-blue-200 rounded-lg text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 shadow-2xs" 
+                                                placeholder="e.g. Strip, Blister, Box"
+                                                autocomplete="off"
+                                            >
+                                            <div class="absolute inset-y-0 right-0 flex items-center pr-1.5 gap-0.5">
+                                                <template x-if="search && search.length > 0">
+                                                    <button 
+                                                        type="button" 
+                                                        @click="search = ''; $wire.set('secondary_unit', '');" 
+                                                        class="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-blue-100/50"
+                                                        title="Clear"
+                                                    >
+                                                        <i class="fa-solid fa-xmark text-xs"></i>
+                                                    </button>
+                                                </template>
+                                                <button 
+                                                    type="button" 
+                                                    @click="open = !open" 
+                                                    class="p-1 text-blue-700 hover:text-blue-900 rounded-md hover:bg-blue-100 transition"
+                                                    title="Select Unit"
+                                                >
+                                                    <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200" :class="open ? 'rotate-180' : ''"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {{-- Floating Dropdown Menu --}}
+                                        <div 
+                                            x-show="open" 
+                                            x-transition:enter="transition ease-out duration-150"
+                                            x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                                            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                            x-transition:leave="transition ease-in duration-100"
+                                            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                            x-transition:leave-end="opacity-0 translate-y-1 scale-95"
+                                            class="absolute z-50 left-0 right-0 mt-1 bg-white border border-blue-200 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100 py-1"
+                                            style="display: none;"
+                                        >
+                                            <div class="px-3 py-1.5 bg-blue-50/80 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-blue-800">
+                                                <span>Suggested Units</span>
+                                                <span x-text="filteredUnits.length + ' available'"></span>
+                                            </div>
+
+                                            <template x-for="u in filteredUnits" :key="u.id || u.name">
+                                                <button
+                                                    type="button"
+                                                    @click="selectUnit(u.name)"
+                                                    class="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center justify-between text-xs transition group"
+                                                    :class="search === u.name ? 'bg-blue-50 font-bold text-blue-900' : 'text-slate-700'"
+                                                >
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="w-5 h-5 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">
+                                                            <i class="fa-solid fa-layer-group text-[9px]"></i>
+                                                        </span>
+                                                        <span x-text="u.name" class="font-medium"></span>
+                                                    </div>
+                                                    <div class="flex items-center gap-1.5">
+                                                        <template x-if="u.symbol">
+                                                            <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono" x-text="u.symbol"></span>
+                                                        </template>
+                                                        <template x-if="search === u.name">
+                                                            <i class="fa-solid fa-check text-blue-600 text-xs"></i>
+                                                        </template>
+                                                    </div>
+                                                </button>
+                                            </template>
+
+                                            <template x-if="filteredUnits.length === 0 && search && search.trim() !== ''">
+                                                <div class="p-2.5 text-center">
+                                                    <button
+                                                        type="button"
+                                                        @click="selectUnit(search.trim())"
+                                                        class="w-full text-left px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-bold text-blue-800 flex items-center justify-between transition"
+                                                    >
+                                                        <span class="flex items-center gap-1.5">
+                                                            <i class="fa-solid fa-plus text-blue-600"></i>
+                                                            <span>Use custom: "<span x-text="search"></span>"</span>
+                                                        </span>
+                                                        <span class="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded">Custom</span>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </div>
+
+                                        {{-- Quick Suggested Pills --}}
+                                        <div class="flex items-center gap-1 mt-1.5 flex-wrap">
+                                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-0.5">Quick:</span>
+                                            @foreach(['Strip', 'Blister', 'Pack', 'Box', 'Bottle', 'Ampoule'] as $secPill)
+                                                <button 
+                                                    type="button" 
+                                                    @click="selectUnit('{{ $secPill }}')" 
+                                                    class="px-1.5 py-0.5 text-[10px] font-bold rounded-md border transition {{ $secondary_unit === $secPill ? 'bg-blue-600 text-white border-blue-600 shadow-2xs' : 'bg-white border-blue-200 text-blue-800 hover:bg-blue-100' }}"
+                                                >
+                                                    {{ $secPill }}
+                                                </button>
                                             @endforeach
-                                        </datalist>
+                                            @if(!empty($secondary_unit))
+                                                <button 
+                                                    type="button" 
+                                                    @click="selectUnit('')" 
+                                                    class="px-1.5 py-0.5 text-[10px] font-bold rounded-md border bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                                                    title="Clear Secondary Unit"
+                                                >
+                                                    ✕ None
+                                                </button>
+                                            @endif
+                                        </div>
                                     </div>
 
                                     <div>
@@ -744,14 +1002,147 @@
                                 </div>
 
                                 <div class="space-y-3">
-                                    <div>
-                                        <label class="block text-xs font-semibold text-slate-700 mb-1">Primary Unit (e.g. Pack / Box)</label>
-                                        <input type="text" list="prim-units-list" wire:model.live="primary_unit" class="w-full h-9 px-3 border border-indigo-200 rounded-lg text-sm bg-white font-medium" placeholder="Pack">
-                                        <datalist id="prim-units-list">
-                                            @foreach($availableUnits as $unit)
-                                                <option value="{{ $unit->name }}">{{ $unit->name }}</option>
+                                    {{-- Primary Unit Searchable Suggestion Dropdown --}}
+                                    <div 
+                                        x-data="{
+                                            open: false,
+                                            search: @entangle('primary_unit').live,
+                                            units: {{ Js::from($availableUnits->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'symbol' => $u->symbol ?? ''])) }},
+                                            get filteredUnits() {
+                                                if (!this.search || this.search.trim() === '') return this.units;
+                                                const q = this.search.toLowerCase().trim();
+                                                return this.units.filter(u => u.name.toLowerCase().includes(q) || (u.symbol && u.symbol.toLowerCase().includes(q)));
+                                            },
+                                            selectUnit(name) {
+                                                this.search = name;
+                                                $wire.set('primary_unit', name);
+                                                this.open = false;
+                                            }
+                                        }"
+                                        class="relative"
+                                        @click.outside="open = false"
+                                    >
+                                        <div class="flex items-center justify-between mb-1">
+                                            <label class="block text-xs font-semibold text-slate-700">Primary Unit (e.g. Pack / Box)</label>
+                                            <span class="text-[10px] text-indigo-700 font-semibold flex items-center gap-1">
+                                                <i class="fa-solid fa-wand-magic-sparkles text-[9px] text-indigo-600"></i> Suggestions
+                                            </span>
+                                        </div>
+
+                                        <div class="relative">
+                                            <input 
+                                                type="text" 
+                                                x-model="search" 
+                                                @focus="open = true" 
+                                                @input="open = true" 
+                                                @keydown.escape="open = false"
+                                                class="w-full h-9 pl-3 pr-16 border border-indigo-200 rounded-lg text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 shadow-2xs" 
+                                                placeholder="e.g. Pack, Box, Carton"
+                                                autocomplete="off"
+                                            >
+                                            <div class="absolute inset-y-0 right-0 flex items-center pr-1.5 gap-0.5">
+                                                <template x-if="search && search.length > 0">
+                                                    <button 
+                                                        type="button" 
+                                                        @click="search = ''; $wire.set('primary_unit', '');" 
+                                                        class="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-indigo-100/50"
+                                                        title="Clear"
+                                                    >
+                                                        <i class="fa-solid fa-xmark text-xs"></i>
+                                                    </button>
+                                                </template>
+                                                <button 
+                                                    type="button" 
+                                                    @click="open = !open" 
+                                                    class="p-1 text-indigo-700 hover:text-indigo-900 rounded-md hover:bg-indigo-100 transition"
+                                                    title="Select Unit"
+                                                >
+                                                    <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200" :class="open ? 'rotate-180' : ''"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {{-- Floating Dropdown Menu --}}
+                                        <div 
+                                            x-show="open" 
+                                            x-transition:enter="transition ease-out duration-150"
+                                            x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                                            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                            x-transition:leave="transition ease-in duration-100"
+                                            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                            x-transition:leave-end="opacity-0 translate-y-1 scale-95"
+                                            class="absolute z-50 left-0 right-0 mt-1 bg-white border border-indigo-200 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100 py-1"
+                                            style="display: none;"
+                                        >
+                                            <div class="px-3 py-1.5 bg-indigo-50/80 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-indigo-800">
+                                                <span>Suggested Units</span>
+                                                <span x-text="filteredUnits.length + ' available'"></span>
+                                            </div>
+
+                                            <template x-for="u in filteredUnits" :key="u.id || u.name">
+                                                <button
+                                                    type="button"
+                                                    @click="selectUnit(u.name)"
+                                                    class="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center justify-between text-xs transition group"
+                                                    :class="search === u.name ? 'bg-indigo-50 font-bold text-indigo-900' : 'text-slate-700'"
+                                                >
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="w-5 h-5 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
+                                                            <i class="fa-solid fa-boxes-stacked text-[9px]"></i>
+                                                        </span>
+                                                        <span x-text="u.name" class="font-medium"></span>
+                                                    </div>
+                                                    <div class="flex items-center gap-1.5">
+                                                        <template x-if="u.symbol">
+                                                            <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono" x-text="u.symbol"></span>
+                                                        </template>
+                                                        <template x-if="search === u.name">
+                                                            <i class="fa-solid fa-check text-indigo-600 text-xs"></i>
+                                                        </template>
+                                                    </div>
+                                                </button>
+                                            </template>
+
+                                            <template x-if="filteredUnits.length === 0 && search && search.trim() !== ''">
+                                                <div class="p-2.5 text-center">
+                                                    <button
+                                                        type="button"
+                                                        @click="selectUnit(search.trim())"
+                                                        class="w-full text-left px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-xs font-bold text-indigo-800 flex items-center justify-between transition"
+                                                    >
+                                                        <span class="flex items-center gap-1.5">
+                                                            <i class="fa-solid fa-plus text-indigo-600"></i>
+                                                            <span>Use custom: "<span x-text="search"></span>"</span>
+                                                        </span>
+                                                        <span class="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded">Custom</span>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </div>
+
+                                        {{-- Quick Suggested Pills --}}
+                                        <div class="flex items-center gap-1 mt-1.5 flex-wrap">
+                                            <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mr-0.5">Quick:</span>
+                                            @foreach(['Pack', 'Box', 'Carton', 'Crate', 'Container'] as $primPill)
+                                                <button 
+                                                    type="button" 
+                                                    @click="selectUnit('{{ $primPill }}')" 
+                                                    class="px-1.5 py-0.5 text-[10px] font-bold rounded-md border transition {{ $primary_unit === $primPill ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs' : 'bg-white border-indigo-200 text-indigo-800 hover:bg-indigo-100' }}"
+                                                >
+                                                    {{ $primPill }}
+                                                </button>
                                             @endforeach
-                                        </datalist>
+                                            @if(!empty($primary_unit))
+                                                <button 
+                                                    type="button" 
+                                                    @click="selectUnit('')" 
+                                                    class="px-1.5 py-0.5 text-[10px] font-bold rounded-md border bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                                                    title="Clear Primary Unit"
+                                                >
+                                                    ✕ None
+                                                </button>
+                                            @endif
+                                        </div>
                                     </div>
 
                                     <div>
