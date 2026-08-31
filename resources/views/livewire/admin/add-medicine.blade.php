@@ -646,17 +646,62 @@
                                     <div 
                                         x-data="{
                                             open: false,
-                                            search: @entangle('base_unit').live,
-                                            units: {{ Js::from($availableUnits->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'symbol' => $u->symbol ?? ''])) }},
+                                            query: '',
+                                            unitValue: @entangle('base_unit').live,
+                                            standardUnits: [
+                                                { name: 'Tablet', symbol: 'Tab', type: 'Solid Dose' },
+                                                { name: 'Capsule', symbol: 'Cap', type: 'Solid Dose' },
+                                                { name: 'Bottle', symbol: 'Btl', type: 'Liquid' },
+                                                { name: 'Vial', symbol: 'Vial', type: 'Injectable' },
+                                                { name: 'Ampoule', symbol: 'Amp', type: 'Injectable' },
+                                                { name: 'Tube', symbol: 'Tb', type: 'Cream / Gel' },
+                                                { name: 'Sachet', symbol: 'Sach', type: 'Powder' },
+                                                { name: 'Piece', symbol: 'Pc', type: 'Item' },
+                                                { name: 'Strip', symbol: 'Str', type: 'Packaging' },
+                                                { name: 'Pack', symbol: 'Pk', type: 'Packaging' },
+                                                { name: 'Box', symbol: 'Bx', type: 'Packaging' },
+                                                { name: 'Drop', symbol: 'Drp', type: 'Liquid' },
+                                                { name: 'Suppository', symbol: 'Sup', type: 'Solid' },
+                                                { name: 'Inhaler', symbol: 'Inh', type: 'Inhaler' },
+                                                { name: 'Spray', symbol: 'Spry', type: 'Spray' },
+                                                { name: 'Milliliter', symbol: 'ml', type: 'Volume' },
+                                                { name: 'Liter', symbol: 'L', type: 'Volume' },
+                                                { name: 'Gram', symbol: 'g', type: 'Weight' },
+                                                { name: 'Milligram', symbol: 'mg', type: 'Weight' }
+                                            ],
+                                            get allUnits() {
+                                                const dbUnits = {{ Js::from($availableUnits->map(fn($u) => ['name' => $u->name, 'symbol' => $u->symbol ?? ''])) }};
+                                                const map = new Map();
+                                                this.standardUnits.forEach(u => map.set(u.name.toLowerCase(), u));
+                                                dbUnits.forEach(u => {
+                                                    if (!map.has(u.name.toLowerCase())) {
+                                                        map.set(u.name.toLowerCase(), { name: u.name, symbol: u.symbol || '', type: 'Unit' });
+                                                    }
+                                                });
+                                                return Array.from(map.values());
+                                            },
                                             get filteredUnits() {
-                                                if (!this.search || this.search.trim() === '') return this.units;
-                                                const q = this.search.toLowerCase().trim();
-                                                return this.units.filter(u => u.name.toLowerCase().includes(q) || (u.symbol && u.symbol.toLowerCase().includes(q)));
+                                                if (!this.query || this.query.trim() === '') {
+                                                    return this.allUnits;
+                                                }
+                                                const q = this.query.toLowerCase().trim();
+                                                return this.allUnits.filter(u => 
+                                                    u.name.toLowerCase().includes(q) || 
+                                                    (u.symbol && u.symbol.toLowerCase().includes(q)) ||
+                                                    (u.type && u.type.toLowerCase().includes(q))
+                                                );
                                             },
                                             selectUnit(name) {
-                                                this.search = name;
+                                                this.unitValue = name;
                                                 $wire.set('base_unit', name);
+                                                this.query = '';
                                                 this.open = false;
+                                            },
+                                            clear() {
+                                                this.unitValue = '';
+                                                this.query = '';
+                                                $wire.set('base_unit', '');
+                                                this.open = true;
                                             }
                                         }"
                                         class="relative"
@@ -674,19 +719,19 @@
                                         <div class="relative">
                                             <input 
                                                 type="text" 
-                                                x-model="search" 
-                                                @focus="open = true" 
-                                                @input="open = true" 
+                                                :value="open ? (query !== '' ? query : (unitValue || '')) : (unitValue || '')"
+                                                @focus="open = true; query = '';" 
+                                                @input="open = true; query = $event.target.value; unitValue = $event.target.value; $wire.set('base_unit', $event.target.value);"
                                                 @keydown.escape="open = false"
-                                                class="w-full h-9 pl-3 pr-16 border border-emerald-300 rounded-lg text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-500 shadow-2xs" 
-                                                placeholder="e.g. Tablet, Capsule, Bottle"
+                                                class="w-full h-9 pl-3 pr-16 border border-emerald-300 rounded-lg text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:border-emerald-500 shadow-2xs cursor-pointer" 
+                                                placeholder="Select or type unit (e.g. Tablet, Capsule)"
                                                 autocomplete="off"
                                             >
                                             <div class="absolute inset-y-0 right-0 flex items-center pr-1.5 gap-0.5">
-                                                <template x-if="search && search.length > 0">
+                                                <template x-if="unitValue && unitValue.length > 0">
                                                     <button 
                                                         type="button" 
-                                                        @click="search = ''; $wire.set('base_unit', '');" 
+                                                        @click="clear()" 
                                                         class="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-emerald-100/50"
                                                         title="Clear"
                                                     >
@@ -695,9 +740,9 @@
                                                 </template>
                                                 <button 
                                                     type="button" 
-                                                    @click="open = !open" 
+                                                    @click="open = !open; if(open) query = '';" 
                                                     class="p-1 text-emerald-700 hover:text-emerald-900 rounded-md hover:bg-emerald-100 transition"
-                                                    title="Select Unit"
+                                                    title="Toggle Suggestions"
                                                 >
                                                     <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200" :class="open ? 'rotate-180' : ''"></i>
                                                 </button>
@@ -713,48 +758,55 @@
                                             x-transition:leave="transition ease-in duration-100"
                                             x-transition:leave-start="opacity-100 translate-y-0 scale-100"
                                             x-transition:leave-end="opacity-0 translate-y-1 scale-95"
-                                            class="absolute z-50 left-0 right-0 mt-1 bg-white border border-emerald-200 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100 py-1"
+                                            class="absolute z-50 left-0 right-0 mt-1 bg-white border border-emerald-200 rounded-xl shadow-xl max-h-64 overflow-hidden divide-y divide-slate-100 py-1"
                                             style="display: none;"
                                         >
-                                            <div class="px-3 py-1.5 bg-emerald-50/80 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                                            <div class="px-3 py-1.5 bg-emerald-50/80 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-emerald-800 border-b border-emerald-100">
                                                 <span>Suggested Units</span>
-                                                <span x-text="filteredUnits.length + ' available'"></span>
+                                                <span x-text="filteredUnits.length + ' Available'"></span>
                                             </div>
 
-                                            <template x-for="u in filteredUnits" :key="u.id || u.name">
-                                                <button
-                                                    type="button"
-                                                    @click="selectUnit(u.name)"
-                                                    class="w-full text-left px-3 py-2 hover:bg-emerald-50 flex items-center justify-between text-xs transition group"
-                                                    :class="search === u.name ? 'bg-emerald-50 font-bold text-emerald-900' : 'text-slate-700'"
-                                                >
-                                                    <div class="flex items-center gap-2">
-                                                        <span class="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">
-                                                            <i class="fa-solid fa-cube text-[9px]"></i>
-                                                        </span>
-                                                        <span x-text="u.name" class="font-medium"></span>
-                                                    </div>
-                                                    <div class="flex items-center gap-1.5">
-                                                        <template x-if="u.symbol">
-                                                            <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono" x-text="u.symbol"></span>
-                                                        </template>
-                                                        <template x-if="search === u.name">
-                                                            <i class="fa-solid fa-check text-emerald-600 text-xs"></i>
-                                                        </template>
-                                                    </div>
-                                                </button>
-                                            </template>
+                                            <div class="max-h-52 overflow-y-auto divide-y divide-slate-50">
+                                                <template x-for="u in filteredUnits" :key="u.name">
+                                                    <button
+                                                        type="button"
+                                                        @click="selectUnit(u.name)"
+                                                        class="w-full text-left px-3 py-2 hover:bg-emerald-50 flex items-center justify-between text-xs transition group"
+                                                        :class="unitValue && unitValue.toLowerCase() === u.name.toLowerCase() ? 'bg-emerald-50 font-bold text-emerald-900' : 'text-slate-700'"
+                                                    >
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">
+                                                                <i class="fa-solid fa-cube text-[9px]"></i>
+                                                            </span>
+                                                            <div>
+                                                                <span x-text="u.name" class="font-medium"></span>
+                                                                <template x-if="u.type">
+                                                                    <span class="text-[10px] text-slate-400 ml-1.5 font-normal" x-text="'(' + u.type + ')'"></span>
+                                                                </template>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex items-center gap-1.5">
+                                                            <template x-if="u.symbol">
+                                                                <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono" x-text="u.symbol"></span>
+                                                            </template>
+                                                            <template x-if="unitValue && unitValue.toLowerCase() === u.name.toLowerCase()">
+                                                                <i class="fa-solid fa-check text-emerald-600 text-xs"></i>
+                                                            </template>
+                                                        </div>
+                                                    </button>
+                                                </template>
+                                            </div>
 
-                                            <template x-if="filteredUnits.length === 0 && search && search.trim() !== ''">
+                                            <template x-if="filteredUnits.length === 0 && query && query.trim() !== ''">
                                                 <div class="p-2.5 text-center">
                                                     <button
                                                         type="button"
-                                                        @click="selectUnit(search.trim())"
+                                                        @click="selectUnit(query.trim())"
                                                         class="w-full text-left px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-800 flex items-center justify-between transition"
                                                     >
                                                         <span class="flex items-center gap-1.5">
                                                             <i class="fa-solid fa-plus text-emerald-600"></i>
-                                                            <span>Use custom: "<span x-text="search"></span>"</span>
+                                                            <span>Use custom unit: "<span x-text="query"></span>"</span>
                                                         </span>
                                                         <span class="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded">Custom</span>
                                                     </button>
@@ -817,16 +869,53 @@
                                     <div 
                                         x-data="{
                                             open: false,
-                                            search: @entangle('secondary_unit').live,
-                                            units: {{ Js::from($availableUnits->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'symbol' => $u->symbol ?? ''])) }},
+                                            query: '',
+                                            unitValue: @entangle('secondary_unit').live,
+                                            standardUnits: [
+                                                { name: 'Strip', symbol: 'Str', type: 'Intermediate Pack' },
+                                                { name: 'Blister', symbol: 'Bls', type: 'Blister Pack' },
+                                                { name: 'Pack', symbol: 'Pk', type: 'Multi-dose Pack' },
+                                                { name: 'Box', symbol: 'Bx', type: 'Intermediate Box' },
+                                                { name: 'Bottle', symbol: 'Btl', type: 'Liquid / Syrup' },
+                                                { name: 'Ampoule', symbol: 'Amp', type: 'Injectable' },
+                                                { name: 'Tube', symbol: 'Tb', type: 'Cream / Ointment' },
+                                                { name: 'Vial', symbol: 'Vial', type: 'Injectable' },
+                                                { name: 'Sachet', symbol: 'Sach', type: 'Powder Pack' },
+                                                { name: 'Carton', symbol: 'Ctn', type: 'Outer Pack' },
+                                                { name: 'Piece', symbol: 'Pc', type: 'Single Piece' }
+                                            ],
+                                            get allUnits() {
+                                                const dbUnits = {{ Js::from($availableUnits->map(fn($u) => ['name' => $u->name, 'symbol' => $u->symbol ?? ''])) }};
+                                                const map = new Map();
+                                                this.standardUnits.forEach(u => map.set(u.name.toLowerCase(), u));
+                                                dbUnits.forEach(u => {
+                                                    if (!map.has(u.name.toLowerCase())) {
+                                                        map.set(u.name.toLowerCase(), { name: u.name, symbol: u.symbol || '', type: 'Packaging' });
+                                                    }
+                                                });
+                                                return Array.from(map.values());
+                                            },
                                             get filteredUnits() {
-                                                if (!this.search || this.search.trim() === '') return this.units;
-                                                const q = this.search.toLowerCase().trim();
-                                                return this.units.filter(u => u.name.toLowerCase().includes(q) || (u.symbol && u.symbol.toLowerCase().includes(q)));
+                                                if (!this.query || this.query.trim() === '') {
+                                                    return this.allUnits;
+                                                }
+                                                const q = this.query.toLowerCase().trim();
+                                                return this.allUnits.filter(u => 
+                                                    u.name.toLowerCase().includes(q) || 
+                                                    (u.symbol && u.symbol.toLowerCase().includes(q)) ||
+                                                    (u.type && u.type.toLowerCase().includes(q))
+                                                );
                                             },
                                             selectUnit(name) {
-                                                this.search = name;
+                                                this.unitValue = name;
                                                 $wire.set('secondary_unit', name);
+                                                this.query = '';
+                                                this.open = false;
+                                            },
+                                            clear() {
+                                                this.unitValue = '';
+                                                this.query = '';
+                                                $wire.set('secondary_unit', '');
                                                 this.open = false;
                                             }
                                         }"
@@ -836,26 +925,26 @@
                                         <div class="flex items-center justify-between mb-1">
                                             <label class="block text-xs font-semibold text-slate-700">Secondary Unit (e.g. Strip)</label>
                                             <span class="text-[10px] text-blue-700 font-semibold flex items-center gap-1">
-                                                <i class="fa-solid fa-wand-magic-sparkles text-[9px] text-blue-600"></i> Suggestions
+                                                <i class="fa-solid fa-wand-magic-sparkles text-[9px] text-blue-600"></i> Auto-Suggest
                                             </span>
                                         </div>
 
                                         <div class="relative">
                                             <input 
                                                 type="text" 
-                                                x-model="search" 
-                                                @focus="open = true" 
-                                                @input="open = true" 
+                                                :value="open ? (query !== '' ? query : (unitValue || '')) : (unitValue || '')"
+                                                @focus="open = true; query = '';" 
+                                                @input="open = true; query = $event.target.value; unitValue = $event.target.value; $wire.set('secondary_unit', $event.target.value);"
                                                 @keydown.escape="open = false"
-                                                class="w-full h-9 pl-3 pr-16 border border-blue-200 rounded-lg text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 shadow-2xs" 
+                                                class="w-full h-9 pl-3 pr-16 border border-blue-200 rounded-lg text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 shadow-2xs cursor-pointer" 
                                                 placeholder="e.g. Strip, Blister, Box"
                                                 autocomplete="off"
                                             >
                                             <div class="absolute inset-y-0 right-0 flex items-center pr-1.5 gap-0.5">
-                                                <template x-if="search && search.length > 0">
+                                                <template x-if="unitValue && unitValue.length > 0">
                                                     <button 
                                                         type="button" 
-                                                        @click="search = ''; $wire.set('secondary_unit', '');" 
+                                                        @click="clear()" 
                                                         class="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-blue-100/50"
                                                         title="Clear"
                                                     >
@@ -864,9 +953,9 @@
                                                 </template>
                                                 <button 
                                                     type="button" 
-                                                    @click="open = !open" 
+                                                    @click="open = !open; if(open) query = '';" 
                                                     class="p-1 text-blue-700 hover:text-blue-900 rounded-md hover:bg-blue-100 transition"
-                                                    title="Select Unit"
+                                                    title="Toggle Suggestions"
                                                 >
                                                     <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200" :class="open ? 'rotate-180' : ''"></i>
                                                 </button>
@@ -882,48 +971,55 @@
                                             x-transition:leave="transition ease-in duration-100"
                                             x-transition:leave-start="opacity-100 translate-y-0 scale-100"
                                             x-transition:leave-end="opacity-0 translate-y-1 scale-95"
-                                            class="absolute z-50 left-0 right-0 mt-1 bg-white border border-blue-200 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100 py-1"
+                                            class="absolute z-50 left-0 right-0 mt-1 bg-white border border-blue-200 rounded-xl shadow-xl max-h-64 overflow-hidden divide-y divide-slate-100 py-1"
                                             style="display: none;"
                                         >
-                                            <div class="px-3 py-1.5 bg-blue-50/80 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-blue-800">
+                                            <div class="px-3 py-1.5 bg-blue-50/80 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-blue-800 border-b border-blue-100">
                                                 <span>Suggested Units</span>
-                                                <span x-text="filteredUnits.length + ' available'"></span>
+                                                <span x-text="filteredUnits.length + ' Available'"></span>
                                             </div>
 
-                                            <template x-for="u in filteredUnits" :key="u.id || u.name">
-                                                <button
-                                                    type="button"
-                                                    @click="selectUnit(u.name)"
-                                                    class="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center justify-between text-xs transition group"
-                                                    :class="search === u.name ? 'bg-blue-50 font-bold text-blue-900' : 'text-slate-700'"
-                                                >
-                                                    <div class="flex items-center gap-2">
-                                                        <span class="w-5 h-5 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">
-                                                            <i class="fa-solid fa-layer-group text-[9px]"></i>
-                                                        </span>
-                                                        <span x-text="u.name" class="font-medium"></span>
-                                                    </div>
-                                                    <div class="flex items-center gap-1.5">
-                                                        <template x-if="u.symbol">
-                                                            <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono" x-text="u.symbol"></span>
-                                                        </template>
-                                                        <template x-if="search === u.name">
-                                                            <i class="fa-solid fa-check text-blue-600 text-xs"></i>
-                                                        </template>
-                                                    </div>
-                                                </button>
-                                            </template>
+                                            <div class="max-h-52 overflow-y-auto divide-y divide-slate-50">
+                                                <template x-for="u in filteredUnits" :key="u.name">
+                                                    <button
+                                                        type="button"
+                                                        @click="selectUnit(u.name)"
+                                                        class="w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center justify-between text-xs transition group"
+                                                        :class="unitValue && unitValue.toLowerCase() === u.name.toLowerCase() ? 'bg-blue-50 font-bold text-blue-900' : 'text-slate-700'"
+                                                    >
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="w-5 h-5 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">
+                                                                <i class="fa-solid fa-layer-group text-[9px]"></i>
+                                                            </span>
+                                                            <div>
+                                                                <span x-text="u.name" class="font-medium"></span>
+                                                                <template x-if="u.type">
+                                                                    <span class="text-[10px] text-slate-400 ml-1.5 font-normal" x-text="'(' + u.type + ')'"></span>
+                                                                </template>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex items-center gap-1.5">
+                                                            <template x-if="u.symbol">
+                                                                <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono" x-text="u.symbol"></span>
+                                                            </template>
+                                                            <template x-if="unitValue && unitValue.toLowerCase() === u.name.toLowerCase()">
+                                                                <i class="fa-solid fa-check text-blue-600 text-xs"></i>
+                                                            </template>
+                                                        </div>
+                                                    </button>
+                                                </template>
+                                            </div>
 
-                                            <template x-if="filteredUnits.length === 0 && search && search.trim() !== ''">
+                                            <template x-if="filteredUnits.length === 0 && query && query.trim() !== ''">
                                                 <div class="p-2.5 text-center">
                                                     <button
                                                         type="button"
-                                                        @click="selectUnit(search.trim())"
+                                                        @click="selectUnit(query.trim())"
                                                         class="w-full text-left px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-bold text-blue-800 flex items-center justify-between transition"
                                                     >
                                                         <span class="flex items-center gap-1.5">
                                                             <i class="fa-solid fa-plus text-blue-600"></i>
-                                                            <span>Use custom: "<span x-text="search"></span>"</span>
+                                                            <span>Use custom unit: "<span x-text="query"></span>"</span>
                                                         </span>
                                                         <span class="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded">Custom</span>
                                                     </button>
@@ -946,7 +1042,7 @@
                                             @if(!empty($secondary_unit))
                                                 <button 
                                                     type="button" 
-                                                    @click="selectUnit('')" 
+                                                    @click="clear()" 
                                                     class="px-1.5 py-0.5 text-[10px] font-bold rounded-md border bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
                                                     title="Clear Secondary Unit"
                                                 >
@@ -1006,16 +1102,50 @@
                                     <div 
                                         x-data="{
                                             open: false,
-                                            search: @entangle('primary_unit').live,
-                                            units: {{ Js::from($availableUnits->map(fn($u) => ['id' => $u->id, 'name' => $u->name, 'symbol' => $u->symbol ?? ''])) }},
+                                            query: '',
+                                            unitValue: @entangle('primary_unit').live,
+                                            standardUnits: [
+                                                { name: 'Pack', symbol: 'Pk', type: 'Outer Pack' },
+                                                { name: 'Box', symbol: 'Bx', type: 'Outer Box' },
+                                                { name: 'Carton', symbol: 'Ctn', type: 'Master Carton' },
+                                                { name: 'Crate', symbol: 'Crt', type: 'Crate' },
+                                                { name: 'Container', symbol: 'Cnt', type: 'Container' },
+                                                { name: 'Dozen', symbol: 'Dzn', type: '12-Pack' },
+                                                { name: 'Strip', symbol: 'Str', type: 'Packaging' },
+                                                { name: 'Bottle', symbol: 'Btl', type: 'Bulk Bottle' }
+                                            ],
+                                            get allUnits() {
+                                                const dbUnits = {{ Js::from($availableUnits->map(fn($u) => ['name' => $u->name, 'symbol' => $u->symbol ?? ''])) }};
+                                                const map = new Map();
+                                                this.standardUnits.forEach(u => map.set(u.name.toLowerCase(), u));
+                                                dbUnits.forEach(u => {
+                                                    if (!map.has(u.name.toLowerCase())) {
+                                                        map.set(u.name.toLowerCase(), { name: u.name, symbol: u.symbol || '', type: 'Outer Unit' });
+                                                    }
+                                                });
+                                                return Array.from(map.values());
+                                            },
                                             get filteredUnits() {
-                                                if (!this.search || this.search.trim() === '') return this.units;
-                                                const q = this.search.toLowerCase().trim();
-                                                return this.units.filter(u => u.name.toLowerCase().includes(q) || (u.symbol && u.symbol.toLowerCase().includes(q)));
+                                                if (!this.query || this.query.trim() === '') {
+                                                    return this.allUnits;
+                                                }
+                                                const q = this.query.toLowerCase().trim();
+                                                return this.allUnits.filter(u => 
+                                                    u.name.toLowerCase().includes(q) || 
+                                                    (u.symbol && u.symbol.toLowerCase().includes(q)) ||
+                                                    (u.type && u.type.toLowerCase().includes(q))
+                                                );
                                             },
                                             selectUnit(name) {
-                                                this.search = name;
+                                                this.unitValue = name;
                                                 $wire.set('primary_unit', name);
+                                                this.query = '';
+                                                this.open = false;
+                                            },
+                                            clear() {
+                                                this.unitValue = '';
+                                                this.query = '';
+                                                $wire.set('primary_unit', '');
                                                 this.open = false;
                                             }
                                         }"
@@ -1025,26 +1155,26 @@
                                         <div class="flex items-center justify-between mb-1">
                                             <label class="block text-xs font-semibold text-slate-700">Primary Unit (e.g. Pack / Box)</label>
                                             <span class="text-[10px] text-indigo-700 font-semibold flex items-center gap-1">
-                                                <i class="fa-solid fa-wand-magic-sparkles text-[9px] text-indigo-600"></i> Suggestions
+                                                <i class="fa-solid fa-wand-magic-sparkles text-[9px] text-indigo-600"></i> Auto-Suggest
                                             </span>
                                         </div>
 
                                         <div class="relative">
                                             <input 
                                                 type="text" 
-                                                x-model="search" 
-                                                @focus="open = true" 
-                                                @input="open = true" 
+                                                :value="open ? (query !== '' ? query : (unitValue || '')) : (unitValue || '')"
+                                                @focus="open = true; query = '';" 
+                                                @input="open = true; query = $event.target.value; unitValue = $event.target.value; $wire.set('primary_unit', $event.target.value);"
                                                 @keydown.escape="open = false"
-                                                class="w-full h-9 pl-3 pr-16 border border-indigo-200 rounded-lg text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 shadow-2xs" 
+                                                class="w-full h-9 pl-3 pr-16 border border-indigo-200 rounded-lg text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:border-indigo-500 shadow-2xs cursor-pointer" 
                                                 placeholder="e.g. Pack, Box, Carton"
                                                 autocomplete="off"
                                             >
                                             <div class="absolute inset-y-0 right-0 flex items-center pr-1.5 gap-0.5">
-                                                <template x-if="search && search.length > 0">
+                                                <template x-if="unitValue && unitValue.length > 0">
                                                     <button 
                                                         type="button" 
-                                                        @click="search = ''; $wire.set('primary_unit', '');" 
+                                                        @click="clear()" 
                                                         class="p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-indigo-100/50"
                                                         title="Clear"
                                                     >
@@ -1053,9 +1183,9 @@
                                                 </template>
                                                 <button 
                                                     type="button" 
-                                                    @click="open = !open" 
+                                                    @click="open = !open; if(open) query = '';" 
                                                     class="p-1 text-indigo-700 hover:text-indigo-900 rounded-md hover:bg-indigo-100 transition"
-                                                    title="Select Unit"
+                                                    title="Toggle Suggestions"
                                                 >
                                                     <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200" :class="open ? 'rotate-180' : ''"></i>
                                                 </button>
@@ -1071,48 +1201,55 @@
                                             x-transition:leave="transition ease-in duration-100"
                                             x-transition:leave-start="opacity-100 translate-y-0 scale-100"
                                             x-transition:leave-end="opacity-0 translate-y-1 scale-95"
-                                            class="absolute z-50 left-0 right-0 mt-1 bg-white border border-indigo-200 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-slate-100 py-1"
+                                            class="absolute z-50 left-0 right-0 mt-1 bg-white border border-indigo-200 rounded-xl shadow-xl max-h-64 overflow-hidden divide-y divide-slate-100 py-1"
                                             style="display: none;"
                                         >
-                                            <div class="px-3 py-1.5 bg-indigo-50/80 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-indigo-800">
+                                            <div class="px-3 py-1.5 bg-indigo-50/80 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-indigo-800 border-b border-indigo-100">
                                                 <span>Suggested Units</span>
-                                                <span x-text="filteredUnits.length + ' available'"></span>
+                                                <span x-text="filteredUnits.length + ' Available'"></span>
                                             </div>
 
-                                            <template x-for="u in filteredUnits" :key="u.id || u.name">
-                                                <button
-                                                    type="button"
-                                                    @click="selectUnit(u.name)"
-                                                    class="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center justify-between text-xs transition group"
-                                                    :class="search === u.name ? 'bg-indigo-50 font-bold text-indigo-900' : 'text-slate-700'"
-                                                >
-                                                    <div class="flex items-center gap-2">
-                                                        <span class="w-5 h-5 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
-                                                            <i class="fa-solid fa-boxes-stacked text-[9px]"></i>
-                                                        </span>
-                                                        <span x-text="u.name" class="font-medium"></span>
-                                                    </div>
-                                                    <div class="flex items-center gap-1.5">
-                                                        <template x-if="u.symbol">
-                                                            <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono" x-text="u.symbol"></span>
-                                                        </template>
-                                                        <template x-if="search === u.name">
-                                                            <i class="fa-solid fa-check text-indigo-600 text-xs"></i>
-                                                        </template>
-                                                    </div>
-                                                </button>
-                                            </template>
+                                            <div class="max-h-52 overflow-y-auto divide-y divide-slate-50">
+                                                <template x-for="u in filteredUnits" :key="u.name">
+                                                    <button
+                                                        type="button"
+                                                        @click="selectUnit(u.name)"
+                                                        class="w-full text-left px-3 py-2 hover:bg-indigo-50 flex items-center justify-between text-xs transition group"
+                                                        :class="unitValue && unitValue.toLowerCase() === u.name.toLowerCase() ? 'bg-indigo-50 font-bold text-indigo-900' : 'text-slate-700'"
+                                                    >
+                                                        <div class="flex items-center gap-2">
+                                                            <span class="w-5 h-5 rounded-md bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">
+                                                                <i class="fa-solid fa-boxes-stacked text-[9px]"></i>
+                                                            </span>
+                                                            <div>
+                                                                <span x-text="u.name" class="font-medium"></span>
+                                                                <template x-if="u.type">
+                                                                    <span class="text-[10px] text-slate-400 ml-1.5 font-normal" x-text="'(' + u.type + ')'"></span>
+                                                                </template>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex items-center gap-1.5">
+                                                            <template x-if="u.symbol">
+                                                                <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono" x-text="u.symbol"></span>
+                                                            </template>
+                                                            <template x-if="unitValue && unitValue.toLowerCase() === u.name.toLowerCase()">
+                                                                <i class="fa-solid fa-check text-indigo-600 text-xs"></i>
+                                                            </template>
+                                                        </div>
+                                                    </button>
+                                                </template>
+                                            </div>
 
-                                            <template x-if="filteredUnits.length === 0 && search && search.trim() !== ''">
+                                            <template x-if="filteredUnits.length === 0 && query && query.trim() !== ''">
                                                 <div class="p-2.5 text-center">
                                                     <button
                                                         type="button"
-                                                        @click="selectUnit(search.trim())"
+                                                        @click="selectUnit(query.trim())"
                                                         class="w-full text-left px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg text-xs font-bold text-indigo-800 flex items-center justify-between transition"
                                                     >
                                                         <span class="flex items-center gap-1.5">
                                                             <i class="fa-solid fa-plus text-indigo-600"></i>
-                                                            <span>Use custom: "<span x-text="search"></span>"</span>
+                                                            <span>Use custom unit: "<span x-text="query"></span>"</span>
                                                         </span>
                                                         <span class="text-[10px] bg-indigo-600 text-white px-1.5 py-0.5 rounded">Custom</span>
                                                     </button>
@@ -1135,7 +1272,7 @@
                                             @if(!empty($primary_unit))
                                                 <button 
                                                     type="button" 
-                                                    @click="selectUnit('')" 
+                                                    @click="clear()" 
                                                     class="px-1.5 py-0.5 text-[10px] font-bold rounded-md border bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
                                                     title="Clear Primary Unit"
                                                 >
