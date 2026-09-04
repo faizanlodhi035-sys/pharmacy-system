@@ -172,13 +172,13 @@
                                 autocomplete="off"
                             >
                             
-                            @if($showProductSuggestions && count($this->suggested_products) > 0)
+                            @if($showProductSuggestions && count($this->suggestedProducts) > 0)
                                 <div class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100 py-1">
                                     <div class="px-3 py-1.5 bg-slate-50 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500">
                                         <span>Suggested Products</span>
-                                        <span>{{ count($this->suggested_products) }} match(es)</span>
+                                        <span>{{ count($this->suggestedProducts) }} match(es)</span>
                                     </div>
-                                    @foreach($this->suggested_products as $prod)
+                                    @foreach($this->suggestedProducts as $prod)
                                         <button
                                             type="button"
                                             wire:click="selectProduct({{ $prod->id }}, '{{ addslashes($prod->name) }}')"

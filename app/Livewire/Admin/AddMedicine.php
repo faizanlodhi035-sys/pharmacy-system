@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\Attributes\Computed;
 
 class AddMedicine extends Component
 {
@@ -212,7 +213,8 @@ class AddMedicine extends Component
         $this->showProductSuggestions = true;
     }
 
-    public function getSuggestedProductsProperty()
+    #[Computed]
+    public function suggestedProducts()
     {
         $q = trim((string)$this->product_search);
         if (empty($q) || strlen($q) < 2) {
