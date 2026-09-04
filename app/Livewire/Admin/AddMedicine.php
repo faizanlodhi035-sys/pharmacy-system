@@ -186,11 +186,25 @@ class AddMedicine extends Component
     public function updatedName($value): void
     {
         $value = trim((string)$value);
-        if (empty($value)) {
+        if (empty($value) || strlen($value) < 3) {
             return;
         }
 
-        $existing = \App\Models\Medicine::where('name', 'like', $value)->first();
+        // Try exact match first
+        $existing = \App\Models\Medicine::where('name', $value)->first();
+
+        // Try ignoring everything in brackets e.g., "Brufen 400mg (Tablet)" -> "Brufen 400mg"
+        if (!$existing && str_contains($value, '(')) {
+            $cleanName = trim(preg_replace('/\(.*?\)/', '', $value));
+            if (!empty($cleanName)) {
+                $existing = \App\Models\Medicine::where('name', 'like', $cleanName . '%')->first();
+            }
+        }
+        
+        // Try simple LIKE match if still not found
+        if (!$existing) {
+             $existing = \App\Models\Medicine::where('name', 'like', $value . '%')->first();
+        }
 
         if ($existing) {
             $this->category_id = (string) $existing->category_id;
