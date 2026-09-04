@@ -179,6 +179,11 @@
                                                 <i class="fa-solid fa-pills text-xs text-emerald-600 group-hover:scale-110 transition-transform"></i>
                                                 <span>{{ $prod->name }}</span>
                                             </div>
+                                            @if($prod->dosage_unit)
+                                            <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-bold">
+                                                {{ $prod->dosage_unit }}
+                                            </span>
+                                            @endif
                                         </button>
                                     @endforeach
                                 </div>

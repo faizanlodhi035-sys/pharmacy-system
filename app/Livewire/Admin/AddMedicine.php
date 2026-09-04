@@ -225,15 +225,51 @@ class AddMedicine extends Component
             $cat = \App\Models\Category::find($existing->category_id);
             $this->category_search = $cat ? $cat->name : '';
 
+            // Basic Info
             $this->brand = $existing->brand ?? '';
             $this->generic_name = $existing->generic_name ?? '';
             $this->manufacturer = $existing->manufacturer ?? '';
             $this->strength = $existing->strength ?? '';
             $this->dosage_form = $existing->dosage_form ?? '';
+            $this->barcode = $existing->barcode ?? '';
+            $this->sku = $existing->sku ?? '';
             
+            // Preferences
+            $this->alert_quantity = (string) ($existing->alert_quantity ?? 10);
+            $this->reorder_level = (string) ($existing->reorder_level ?? 10);
+            $this->tax_rate = (string) ($existing->tax_rate ?? 0);
+            $this->has_expiry = (bool) $existing->has_expiry;
+            $this->track_batches = (bool) $existing->track_batches;
+
+            // Packaging & Units
+            $this->base_unit = $existing->base_unit ?? 'Tablet';
+            $this->primary_unit = $existing->primary_unit ?? '';
+            $this->secondary_unit = $existing->secondary_unit ?? '';
+            $this->dosage_unit = $existing->dosage_unit ?? '';
+            $this->primary_unit_to_secondary = (string) ($existing->primary_unit_to_secondary ?? 10);
+            $this->secondary_unit_to_base = (string) ($existing->secondary_unit_to_base ?? 10);
+
+            // Base Prices
+            $this->purchase_price = (string) ($existing->purchase_price ?? 0);
+            $this->selling_price = (string) ($existing->unit_price ?? 0);
+
+            // Hierarchy Prices
+            $this->base_unit_purchase_price = (string) ($existing->purchase_price ?? '');
+            $this->base_unit_selling_price = (string) ($existing->unit_price ?? '');
+            
+            if (!empty($existing->primary_unit_selling_price)) {
+                $this->primary_unit_selling_price = (string) $existing->primary_unit_selling_price;
+            }
+            if (!empty($existing->secondary_unit_selling_price)) {
+                $this->secondary_unit_selling_price = (string) $existing->secondary_unit_selling_price;
+            }
+            
+            // Latest Batch details for continuity
             $latestBatch = \App\Models\MedicineBatch::where('medicine_id', $existing->id)->latest()->first();
             if ($latestBatch) {
-                $this->batch_number = $latestBatch->batch_number ?? '';
+                // We keep the old batch number string logic so the user can easily overwrite it, 
+                // but we also pull supplier
+                $this->supplier_id = (string) $latestBatch->supplier_id;
             }
         }
     }
