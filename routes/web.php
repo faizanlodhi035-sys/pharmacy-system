@@ -25,6 +25,19 @@ Route::get('/', function () {
 });
 
 // ============================================================
+// Temporary Safe Migration Route
+// ============================================================
+
+Route::get('/run-migration-safe', function (\Illuminate\Http\Request $request) {
+    if (!$request->has('token') || $request->token !== env('MIGRATION_TEST_TOKEN')) {
+        abort(403, 'Unauthorized migration access.');
+    }
+
+    \Illuminate\Support\Facades\Artisan::call('db:transfer-to-pg', ['--dry-run' => true]);
+    return nl2br(htmlspecialchars(\Illuminate\Support\Facades\Artisan::output()));
+});
+
+// ============================================================
 // Auth Routes
 // ============================================================
 
