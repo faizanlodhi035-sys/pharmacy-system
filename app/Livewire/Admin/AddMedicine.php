@@ -182,6 +182,35 @@ class AddMedicine extends Component
     public function updatingSearch(): void { $this->resetPage(); }
     public function updatingProductTypeFilter(): void { $this->resetPage(); }
     public function updatingCategoryFilter(): void { $this->resetPage(); }
+
+    public function updatedName($value): void
+    {
+        $value = trim((string)$value);
+        if (empty($value)) {
+            return;
+        }
+
+        $existing = \App\Models\Medicine::where('name', 'like', $value)->first();
+
+        if ($existing) {
+            $this->category_id = (string) $existing->category_id;
+            
+            $cat = \App\Models\Category::find($existing->category_id);
+            $this->category_search = $cat ? $cat->name : '';
+
+            $this->brand = $existing->brand ?? '';
+            $this->generic_name = $existing->generic_name ?? '';
+            $this->manufacturer = $existing->manufacturer ?? '';
+            $this->strength = $existing->strength ?? '';
+            $this->dosage_form = $existing->dosage_form ?? '';
+            
+            $latestBatch = \App\Models\MedicineBatch::where('medicine_id', $existing->id)->latest()->first();
+            if ($latestBatch) {
+                $this->batch_number = $latestBatch->batch_number ?? '';
+            }
+        }
+    }
+
     public function updatingSupplierFilter(): void { $this->resetPage(); }
     public function updatingStockFilter(): void { $this->resetPage(); }
     public function updatingExpiryFilter(): void { $this->resetPage(); }
