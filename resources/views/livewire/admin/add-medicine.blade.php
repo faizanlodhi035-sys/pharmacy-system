@@ -154,14 +154,43 @@
                             </span>
                         </div>
 
-                        <input
-                            type="text"
-                            list="product-name-suggestions"
-                            wire:model.live.debounce.300ms="name"
-                            class="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
-                            placeholder="{{ $product_type === 'general' ? 'e.g. Lux Soap 100g / Dettol Soap / Colgate' : 'e.g. Panadol 500mg / Augmentin 625mg' }}"
-                            autocomplete="off"
-                        >
+                        <div class="relative" @click.outside="$wire.showProductSuggestions = false">
+                            <input
+                                type="text"
+                                wire:model.live.debounce.300ms="product_search"
+                                class="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
+                                placeholder="{{ $product_type === 'general' ? 'e.g. Lux Soap 100g / Dettol Soap / Colgate' : 'e.g. Panadol 500mg / Augmentin 625mg' }}"
+                                autocomplete="off"
+                            >
+                            
+                            @if($showProductSuggestions && count($this->suggested_products) > 0)
+                                <div class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100 py-1">
+                                    <div class="px-3 py-1.5 bg-slate-50 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                        <span>Suggested Products</span>
+                                        <span>{{ count($this->suggested_products) }} match(es)</span>
+                                    </div>
+                                    @foreach($this->suggested_products as $prod)
+                                        <button
+                                            type="button"
+                                            wire:click="selectProduct({{ $prod->id }}, '{{ addslashes($prod->name) }}')"
+                                            class="w-full text-left px-3.5 py-2.5 hover:bg-emerald-50/80 flex items-center justify-between text-sm transition group text-slate-700"
+                                        >
+                                            <div class="flex items-center gap-2">
+                                                <i class="fa-solid fa-pills text-xs text-emerald-600 group-hover:scale-110 transition-transform"></i>
+                                                <span>{{ $prod->name }}</span>
+                                            </div>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @elseif($showProductSuggestions && count($this->suggested_products) === 0 && strlen($product_search) >= 2)
+                                <div class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 text-center text-sm text-slate-500">
+                                    No existing product found. Will be added as a new product.
+                                </div>
+                            @endif
+                            <div wire:loading wire:target="product_search" class="absolute right-3 top-2.5">
+                                <i class="fa-solid fa-spinner fa-spin text-slate-400 text-sm"></i>
+                            </div>
+                        </div>
                     </div>
 
                     {{-- Category (Smart Searchable Auto-Suggest Dropdown & Quick Create) --}}

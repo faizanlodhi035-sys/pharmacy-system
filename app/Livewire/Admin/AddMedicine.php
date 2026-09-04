@@ -183,28 +183,41 @@ class AddMedicine extends Component
     public function updatingProductTypeFilter(): void { $this->resetPage(); }
     public function updatingCategoryFilter(): void { $this->resetPage(); }
 
-    public function updatedName($value): void
+    public string $product_search = '';
+    public bool $showProductSuggestions = false;
+
+    public function updatedProductSearch($value): void
     {
         $value = trim((string)$value);
-        if (empty($value) || strlen($value) < 3) {
+        $this->name = $value; // keep name in sync with free text
+        
+        if (empty($value) || strlen($value) < 2) {
+            $this->showProductSuggestions = false;
             return;
         }
 
-        // Try exact match first
-        $existing = \App\Models\Medicine::where('name', $value)->first();
+        $this->showProductSuggestions = true;
+    }
 
-        // Try ignoring everything in brackets e.g., "Brufen 400mg (Tablet)" -> "Brufen 400mg"
-        if (!$existing && str_contains($value, '(')) {
-            $cleanName = trim(preg_replace('/\(.*?\)/', '', $value));
-            if (!empty($cleanName)) {
-                $existing = \App\Models\Medicine::where('name', 'like', $cleanName . '%')->first();
-            }
+    public function getSuggestedProductsProperty()
+    {
+        if (empty($this->product_search) || strlen($this->product_search) < 2) {
+            return collect();
         }
-        
-        // Try simple LIKE match if still not found
-        if (!$existing) {
-             $existing = \App\Models\Medicine::where('name', 'like', $value . '%')->first();
-        }
+
+        return \App\Models\Medicine::where('name', 'like', '%' . $this->product_search . '%')
+            ->select('id', 'name', 'dosage_unit')
+            ->limit(10)
+            ->get();
+    }
+
+    public function selectProduct(int $id, string $name): void
+    {
+        $this->name = $name;
+        $this->product_search = $name;
+        $this->showProductSuggestions = false;
+
+        $existing = \App\Models\Medicine::find($id);
 
         if ($existing) {
             $this->category_id = (string) $existing->category_id;
