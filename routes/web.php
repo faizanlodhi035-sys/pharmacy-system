@@ -25,16 +25,51 @@ Route::get('/', function () {
 });
 
 // ============================================================
-// Temporary Safe Migration Route
+// Temporary Safe Migration Routes
 // ============================================================
+
+Route::get('/upload-sqlite-form', function (\Illuminate\Http\Request $request) {
+    if (!$request->has('token') || $request->token !== env('MIGRATION_TEST_TOKEN')) {
+        abort(403, 'Unauthorized migration access.');
+    }
+    return '
+    <form action="/upload-sqlite-safe?token=' . htmlspecialchars($request->token) . '" method="POST" enctype="multipart/form-data">
+        ' . csrf_field() . '
+        <h2>Secure SQLite Upload</h2>
+        <input type="file" name="sqlite_file" accept=".sqlite" required>
+        <button type="submit">Upload & Overwrite</button>
+    </form>';
+});
+
+Route::post('/upload-sqlite-safe', function (\Illuminate\Http\Request $request) {
+    if (!$request->has('token') || $request->token !== env('MIGRATION_TEST_TOKEN')) {
+        abort(403, 'Unauthorized migration access.');
+    }
+    if ($request->hasFile('sqlite_file')) {
+        $file = $request->file('sqlite_file');
+        $destination = database_path('database.sqlite');
+        // Overwrite the existing sqlite file
+        move_uploaded_file($file->getRealPath(), $destination);
+        return "Database uploaded successfully to: " . $destination . "<br>Size: " . filesize($destination) . " bytes.<br><br>Now you can hit: <a href='/run-migration-safe?token=" . htmlspecialchars($request->token) . "'>Run Dry Run</a>";
+    }
+    return "No file uploaded.";
+});
 
 Route::get('/run-migration-safe', function (\Illuminate\Http\Request $request) {
     if (!$request->has('token') || $request->token !== env('MIGRATION_TEST_TOKEN')) {
         abort(403, 'Unauthorized migration access.');
     }
-
     \Illuminate\Support\Facades\Artisan::call('db:transfer-to-pg', ['--dry-run' => true]);
-    return nl2br(htmlspecialchars(\Illuminate\Support\Facades\Artisan::output()));
+    $output = nl2br(htmlspecialchars(\Illuminate\Support\Facades\Artisan::output()));
+    return $output . "<br><br>If dry-run is successful, hit: <a href='/run-migration-real?token=" . htmlspecialchars($request->token) . "'>RUN REAL TRANSFER</a>";
+});
+
+Route::get('/run-migration-real', function (\Illuminate\Http\Request $request) {
+    if (!$request->has('token') || $request->token !== env('MIGRATION_TEST_TOKEN')) {
+        abort(403, 'Unauthorized migration access.');
+    }
+    \Illuminate\Support\Facades\Artisan::call('db:transfer-to-pg');
+    return "<h1>REAL MIGRATION COMPLETED</h1>" . nl2br(htmlspecialchars(\Illuminate\Support\Facades\Artisan::output()));
 });
 
 // ============================================================
