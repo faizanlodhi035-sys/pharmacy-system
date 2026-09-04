@@ -4,6 +4,7 @@ FROM php:8.2-cli-alpine
 RUN apk add --no-cache \
     sqlite \
     sqlite-dev \
+    postgresql-dev \
     libpng-dev \
     libzip-dev \
     zip \
@@ -18,6 +19,7 @@ RUN apk add --no-cache \
 RUN docker-php-ext-install \
     pdo \
     pdo_sqlite \
+    pdo_pgsql \
     mbstring \
     bcmath \
     gd \
