@@ -211,6 +211,7 @@ class PosCounter extends Component
                 'name' => $medicine->name,
                 'generic_name' => $medicine->generic_name ?? ($medicine->is_general ? 'General Store' : 'Medicine'),
                 'batch_number' => $batch->batch_number ?? 'DEFAULT',
+                'expiry_date' => $batch->expiry_date ? $batch->expiry_date->format('d M Y') : 'N/A',
                 'unit' => $unitName,
                 'conversion_to_base' => $conversionToBase,
                 'price' => (float) $price,
@@ -218,6 +219,7 @@ class PosCounter extends Component
                 'base_qty' => (float) $conversionToBase,
                 'base_unit' => $medicine->base_unit ?: 'Tablet',
                 'subtotal' => (float) $price,
+                'total_base_available' => $totalBaseAvailable,
             ];
         }
 
@@ -293,6 +295,7 @@ class PosCounter extends Component
         $item['price'] = $price;
         $item['base_qty'] = $newBaseQty;
         $item['subtotal'] = round($item['qty'] * $price, 2);
+        $item['total_base_available'] = $totalBaseAvailable;
 
         $this->cart[$newCartKey] = $item;
         $this->calculateTotals();
@@ -319,6 +322,7 @@ class PosCounter extends Component
                 $this->cart[$cartKey]['qty'] = $newQty;
                 $this->cart[$cartKey]['base_qty'] = $newBase;
                 $this->cart[$cartKey]['subtotal'] = round($newQty * $item['price'], 2);
+                $this->cart[$cartKey]['total_base_available'] = $totalAvailable;
                 $this->calculateTotals();
             }
         }

@@ -194,6 +194,16 @@
                         <tr wire:key="cart-item-{{ $id }}">
                             <td class="py-3">
                                 <p class="font-bold text-gray-900 text-xs">{{ $item['name'] ?? '' }}</p>
+                                <div class="flex flex-wrap gap-1 mt-1 mb-1">
+                                    <span class="text-[9px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200">
+                                        Batch: <span class="font-bold">{{ $item['batch_number'] ?? 'N/A' }}</span>
+                                    </span>
+                                    @if(isset($item['expiry_date']) && $item['expiry_date'] !== 'N/A')
+                                    <span class="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded border border-red-100">
+                                        Exp: <span class="font-bold">{{ $item['expiry_date'] }}</span>
+                                    </span>
+                                    @endif
+                                </div>
                                 <div class="flex items-center gap-1 mt-1">
                                     <select
                                         class="text-[11px] bg-blue-50 border border-blue-200 rounded px-1.5 py-0.5 text-blue-800 font-bold cursor-pointer focus:outline-none"
@@ -215,10 +225,17 @@
                                 </p>
                             </td>
                             <td class="py-3 text-center">
-                                <div class="inline-flex items-center border border-gray-200 rounded-xl bg-gray-50 overflow-hidden">
-                                    <button wire:click="decrementQty('{{ $id }}')" class="px-2.5 py-1 text-gray-600 hover:bg-gray-200 transition font-bold cursor-pointer">-</button>
-                                    <span class="px-3 py-1 text-xs font-bold text-gray-800">{{ $item['qty'] ?? 1 }}</span>
-                                    <button wire:click="incrementQty('{{ $id }}')" class="px-2.5 py-1 text-gray-600 hover:bg-gray-200 transition font-bold cursor-pointer">+</button>
+                                <div class="flex flex-col items-center gap-1">
+                                    <div class="inline-flex items-center border border-gray-200 rounded-xl bg-gray-50 overflow-hidden">
+                                        <button wire:click="decrementQty('{{ $id }}')" class="px-2.5 py-1 text-gray-600 hover:bg-gray-200 transition font-bold cursor-pointer">-</button>
+                                        <span class="px-3 py-1 text-xs font-bold text-gray-800">{{ $item['qty'] ?? 1 }}</span>
+                                        <button wire:click="incrementQty('{{ $id }}')" class="px-2.5 py-1 text-gray-600 hover:bg-gray-200 transition font-bold cursor-pointer">+</button>
+                                    </div>
+                                    @if(isset($item['total_base_available']))
+                                    <span class="text-[9px] text-emerald-600 font-bold" title="Max available stock across all unexpired batches">
+                                        Max: {{ floor($item['total_base_available'] / ($item['conversion_to_base'] ?: 1)) }} {{ $item['unit'] ?? '' }}s
+                                    </span>
+                                    @endif
                                 </div>
                             </td>
                             <td class="py-3 text-right text-xs font-medium text-gray-600">
