@@ -185,11 +185,24 @@ class AddMedicine extends Component
 
     public string $product_search = '';
     public bool $showProductSuggestions = false;
+    public bool $verified_product_match = false;
+    public ?int $verified_medicine_id = null;
+    public bool $showNewProductConfirmation = false;
+
+    public function updatedName(): void { $this->verified_product_match = false; $this->verified_medicine_id = null; }
+    public function updatedStrength(): void { $this->verified_product_match = false; $this->verified_medicine_id = null; }
+    public function updatedDosageForm(string $form): void
+    {
+        $this->verified_product_match = false;
+        $this->verified_medicine_id = null;
+    }
 
     public function updatedProductSearch($value): void
     {
         $value = trim((string)$value);
         $this->name = $value; // keep name in sync with free text
+        $this->verified_product_match = false;
+        $this->verified_medicine_id = null;
         
         if (empty($value) || strlen($value) < 2) {
             $this->showProductSuggestions = false;
@@ -201,18 +214,37 @@ class AddMedicine extends Component
 
     public function getSuggestedProductsProperty()
     {
-        if (empty($this->product_search) || strlen($this->product_search) < 2) {
+        $q = trim((string)$this->product_search);
+        if (empty($q) || strlen($q) < 2) {
             return collect();
         }
 
-        return \App\Models\Medicine::where('name', 'like', '%' . $this->product_search . '%')
-            ->select('id', 'name', 'dosage_unit')
-            ->limit(10)
-            ->get();
+        $terms = array_filter(explode(' ', strtolower($q)));
+
+        return \App\Models\Medicine::where(function($query) use ($q, $terms) {
+            $query->where('barcode', '=', $q)
+                  ->orWhere('name', 'like', "%{$q}%")
+                  ->orWhere('generic_name', 'like', "%{$q}%")
+                  ->orWhere('brand', 'like', "%{$q}%")
+                  ->orWhere(function($subq) use ($terms) {
+                      foreach ($terms as $term) {
+                          $subq->where(function($q2) use ($term) {
+                              $q2->where('name', 'like', "%{$term}%")
+                                 ->orWhere('strength', 'like', "%{$term}%")
+                                 ->orWhere('dosage_form', 'like', "%{$term}%");
+                          });
+                      }
+                  });
+        })
+        ->select('id', 'name', 'dosage_unit', 'dosage_form', 'strength', 'manufacturer', 'brand', 'barcode')
+        ->limit(10)
+        ->get();
     }
 
     public function selectProduct(int $id, string $name): void
     {
+        $this->verified_product_match = true;
+        $this->verified_medicine_id = $id;
         $this->name = $name;
         $this->product_search = $name;
         $this->showProductSuggestions = false;
@@ -332,79 +364,7 @@ class AddMedicine extends Component
         $this->resetValidation('category_id');
     }
 
-    public function updatedDosageForm(string $form): void
-    {
-        $formLower = strtolower(trim($form));
-        if (empty($formLower)) {
-            return;
-        }
-
-        if (
-            str_contains($formLower, 'syrup') ||
-            str_contains($formLower, 'suspension') ||
-            str_contains($formLower, 'elixir') ||
-            str_contains($formLower, 'solution') ||
-            str_contains($formLower, 'drops') ||
-            str_contains($formLower, 'lotion') ||
-            str_contains($formLower, 'mouthwash') ||
-            str_contains($formLower, 'liquid')
-        ) {
-            $this->base_unit = 'Bottle';
-            $this->secondary_unit = '';
-            $this->primary_unit = 'Box';
-            $this->primary_unit_to_secondary = '12';
-            $this->secondary_unit_to_base = '1';
-        } elseif (
-            str_contains($formLower, 'injection') ||
-            str_contains($formLower, 'infusion') ||
-            str_contains($formLower, 'vial') ||
-            str_contains($formLower, 'ampoule')
-        ) {
-            $this->base_unit = str_contains($formLower, 'ampoule') ? 'Ampoule' : 'Vial';
-            $this->secondary_unit = '';
-            $this->primary_unit = 'Pack';
-            $this->primary_unit_to_secondary = '5';
-            $this->secondary_unit_to_base = '1';
-        } elseif (
-            str_contains($formLower, 'cream') ||
-            str_contains($formLower, 'ointment') ||
-            str_contains($formLower, 'gel')
-        ) {
-            $this->base_unit = 'Tube';
-            $this->secondary_unit = '';
-            $this->primary_unit = 'Box';
-            $this->primary_unit_to_secondary = '10';
-            $this->secondary_unit_to_base = '1';
-        } elseif (
-            str_contains($formLower, 'sachet') ||
-            str_contains($formLower, 'powder')
-        ) {
-            $this->base_unit = 'Sachet';
-            $this->secondary_unit = '';
-            $this->primary_unit = 'Box';
-            $this->primary_unit_to_secondary = '20';
-            $this->secondary_unit_to_base = '1';
-        } elseif (
-            str_contains($formLower, 'inhaler') ||
-            str_contains($formLower, 'spray')
-        ) {
-            $this->base_unit = 'Bottle';
-            $this->secondary_unit = '';
-            $this->primary_unit = 'Box';
-        } elseif (str_contains($formLower, 'capsule')) {
-            $this->base_unit = 'Capsule';
-            $this->secondary_unit = 'Strip';
-            $this->primary_unit = 'Pack';
-            $this->primary_unit_to_secondary = '10';
-            $this->secondary_unit_to_base = '10';
-        } elseif (str_contains($formLower, 'tablet')) {
-            $this->base_unit = 'Tablet';
-            $this->secondary_unit = 'Strip';
-            $this->primary_unit = 'Pack';
-            $this->primary_unit_to_secondary = '10';
-            $this->secondary_unit_to_base = '10';
-        }
-    }
+    // Removed updatedDosageForm to prevent bugs
 
     public function updatedInitialStockUnit(string $unit): void
     {
@@ -459,7 +419,18 @@ class AddMedicine extends Component
         return $p2s * $s2b;
     }
 
-    public function save(): void
+    public function confirmSaveNewProduct(): void
+    {
+        $this->showNewProductConfirmation = false;
+        $this->save(true);
+    }
+
+    public function cancelSaveNewProduct(): void
+    {
+        $this->showNewProductConfirmation = false;
+    }
+
+    public function save($skipConfirmation = false): void
     {
         $rules = [
             'product_type' => 'required|in:medicine,general',
@@ -504,6 +475,17 @@ class AddMedicine extends Component
         }
 
         $this->validate($rules);
+
+        // Safety Gate: Do not auto-fill/save a new product without confirmation if not verified.
+        if (!$this->verified_product_match && !$skipConfirmation) {
+            $exists = Medicine::where('name', trim($this->name))->first();
+            if ($exists) {
+                session()->flash('error', "SAFETY WARNING: A product named '{$this->name}' already exists. Please select it from the dropdown to prevent duplicates, or use a different name.");
+                return;
+            }
+            $this->showNewProductConfirmation = true;
+            return;
+        }
 
         DB::transaction(function () {
             $baseUnitSlug = Str::slug($this->base_unit);

@@ -146,8 +146,17 @@
                     {{-- Product Name (with Auto-Suggestions) --}}
                     <div>
                         <div class="flex items-center justify-between mb-1">
-                            <label class="block text-sm font-medium text-slate-700">
-                                Product Name <span class="text-red-500">*</span>
+                            <label class="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                <span>Product Name <span class="text-red-500">*</span></span>
+                                @if($verified_product_match)
+                                    <span class="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded border border-emerald-200">
+                                        <i class="fa-solid fa-circle-check"></i> Verified DB Product
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[9px] font-bold px-2 py-0.5 rounded border border-amber-200">
+                                        <i class="fa-solid fa-triangle-exclamation"></i> New / Unverified Product
+                                    </span>
+                                @endif
                             </label>
                             <span class="text-[10px] text-slate-400 font-medium flex items-center gap-1">
                                 <i class="fa-solid fa-wand-magic-sparkles text-[9px] text-emerald-500"></i> Auto-suggest
@@ -173,17 +182,27 @@
                                         <button
                                             type="button"
                                             wire:click="selectProduct({{ $prod->id }}, '{{ addslashes($prod->name) }}')"
-                                            class="w-full text-left px-3.5 py-2.5 hover:bg-emerald-50/80 flex items-center justify-between text-sm transition group text-slate-700"
+                                            class="w-full text-left px-3.5 py-2.5 hover:bg-emerald-50/80 flex flex-col justify-center text-sm transition group text-slate-700"
                                         >
-                                            <div class="flex items-center gap-2">
-                                                <i class="fa-solid fa-pills text-xs text-emerald-600 group-hover:scale-110 transition-transform"></i>
-                                                <span>{{ $prod->name }}</span>
+                                            <div class="flex items-center justify-between w-full">
+                                                <div class="flex items-center gap-2 font-bold">
+                                                    <i class="fa-solid fa-pills text-xs text-emerald-600 group-hover:scale-110 transition-transform"></i>
+                                                    <span>{{ $prod->name }}</span>
+                                                    @if($prod->strength)
+                                                        <span class="text-xs text-slate-500 font-medium"> {{ $prod->strength }}</span>
+                                                    @endif
+                                                </div>
+                                                <div class="flex items-center gap-1">
+                                                    @if($prod->dosage_form || $prod->dosage_unit)
+                                                        <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200 font-bold uppercase tracking-wider">
+                                                            {{ $prod->dosage_form ?: $prod->dosage_unit }}
+                                                        </span>
+                                                    @endif
+                                                </div>
                                             </div>
-                                            @if($prod->dosage_unit)
-                                            <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full font-bold">
-                                                {{ $prod->dosage_unit }}
-                                            </span>
-                                            @endif
+                                            <div class="text-[10px] text-slate-400 mt-1 pl-5">
+                                                {{ $prod->manufacturer ?: ($prod->brand ?: 'Unknown Manufacturer') }}
+                                            </div>
                                         </button>
                                     @endforeach
                                 </div>
