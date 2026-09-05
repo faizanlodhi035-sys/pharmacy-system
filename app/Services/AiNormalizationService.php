@@ -34,8 +34,8 @@ class AiNormalizationService
             return null;
         }
 
-        // We use gemini-flash-latest as it is fast and suitable for this task
-        $endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' . $apiKey;
+        // We use gemini-3.6-flash as it is fast and suitable for this task
+        $endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' . $apiKey;
 
         $prompt = "You are an expert pharmacy data normalization assistant.
 The user is searching for a medicine: \"{$query}\"
