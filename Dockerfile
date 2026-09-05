@@ -46,7 +46,13 @@ RUN mkdir -p /app/database /app/storage/framework/views /app/storage/framework/s
     && touch /app/database/database.sqlite \
     && chmod -R 777 /app/storage /app/bootstrap/cache /app/database
 
+# VERIFICATION: Ensure routes exist in the copied code
+RUN test -f routes/web.php \
+    && grep -q "admin/migration" routes/web.php \
+    && grep -q "admin/diagnostic" routes/web.php \
+    && echo "BUILD VERIFICATION PASSED: Routes are present in web.php"
+
 EXPOSE 8000
 
-CMD ["sh", "-c", "php artisan route:clear && php artisan config:clear && php artisan view:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
+CMD ["sh", "-c", "php artisan optimize:clear && php artisan route:clear && php artisan config:clear && php artisan view:clear && php artisan route:list --path=admin && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
 
