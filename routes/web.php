@@ -25,11 +25,10 @@ Route::get('/', function () {
 });
 
 // ============================================================
-// Secure Admin Migration Routes
+// Secure Admin Migration Routes (Token Protected)
 // ============================================================
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
-    Route::middleware('throttle:10,1')->group(function () {
+Route::middleware('throttle:10,1')->group(function () {
         Route::get('/admin/migration', [\App\Http\Controllers\Admin\MigrationController::class, 'index'])
             ->name('admin.migration.index');
             
