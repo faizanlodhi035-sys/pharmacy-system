@@ -21,7 +21,7 @@ class AiNormalizationService
 
         $cacheKey = 'ai_med_norm_' . md5($query);
 
-        return Cache::remember($cacheKey, 86400, function () use ($query) {
+        return Cache::remember($cacheKey, 86400, function () use ($query, $productType) {
             return $this->callGemini($query, $productType);
         });
     }
