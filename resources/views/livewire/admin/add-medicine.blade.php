@@ -206,7 +206,7 @@
                                         </button>
                                     @endforeach
                                 </div>
-                            @elseif($showProductSuggestions && count($this->suggested_products) === 0 && strlen($product_search) >= 2)
+                            @elseif($showProductSuggestions && count($this->suggestedProducts) === 0 && strlen($product_search) >= 2)
                                 <div class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 text-center text-sm text-slate-500">
                                     No existing product found. Will be added as a new product.
                                 </div>

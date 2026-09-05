@@ -223,17 +223,19 @@ class AddMedicine extends Component
 
         $terms = array_filter(explode(' ', strtolower($q)));
 
-        return \App\Models\Medicine::where(function($query) use ($q, $terms) {
+        $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+
+        return \App\Models\Medicine::where(function($query) use ($q, $terms, $like) {
             $query->where('barcode', '=', $q)
-                  ->orWhere('name', 'like', "%{$q}%")
-                  ->orWhere('generic_name', 'like', "%{$q}%")
-                  ->orWhere('brand', 'like', "%{$q}%")
-                  ->orWhere(function($subq) use ($terms) {
+                  ->orWhere('name', $like, "%{$q}%")
+                  ->orWhere('generic_name', $like, "%{$q}%")
+                  ->orWhere('brand', $like, "%{$q}%")
+                  ->orWhere(function($subq) use ($terms, $like) {
                       foreach ($terms as $term) {
-                          $subq->where(function($q2) use ($term) {
-                              $q2->where('name', 'like', "%{$term}%")
-                                 ->orWhere('strength', 'like', "%{$term}%")
-                                 ->orWhere('dosage_form', 'like', "%{$term}%");
+                          $subq->where(function($q2) use ($term, $like) {
+                              $q2->where('name', $like, "%{$term}%")
+                                 ->orWhere('strength', $like, "%{$term}%")
+                                 ->orWhere('dosage_form', $like, "%{$term}%");
                           });
                       }
                   });
