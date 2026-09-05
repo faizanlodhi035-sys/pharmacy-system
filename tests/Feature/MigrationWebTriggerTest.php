@@ -55,7 +55,7 @@ class MigrationWebTriggerTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         
         // Without CSRF token in payload, should fail with 419 Page Expired
-        $response = $this->actingAs($admin)->post('/admin/migration/dry-run');
+        $response = $this->actingAs($admin)->withSession(['migration_authorized' => true])->post('/admin/migration/dry-run');
         $response->assertStatus(419);
     }
 
@@ -72,7 +72,7 @@ class MigrationWebTriggerTest extends TestCase
             ->once()
             ->andReturn('Dry Run OK');
 
-        $response = $this->actingAs($admin)->post('/admin/migration/dry-run?token=' . env('MIGRATION_TEST_TOKEN'), [
+        $response = $this->actingAs($admin)->withSession(['migration_authorized' => true])->post('/admin/migration/dry-run', [
             '_token' => csrf_token()
         ]);
         
@@ -87,7 +87,7 @@ class MigrationWebTriggerTest extends TestCase
         // Force lock to simulate another running process
         Cache::lock('migration_transfer_lock', 600)->get();
 
-        $response = $this->actingAs($admin)->post('/admin/migration/real-transfer?token=' . env('MIGRATION_TEST_TOKEN'), [
+        $response = $this->actingAs($admin)->withSession(['migration_authorized' => true])->post('/admin/migration/real-transfer', [
             '_token' => csrf_token()
         ]);
 

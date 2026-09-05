@@ -13,8 +13,20 @@ class MigrationController extends Controller
 {
     private function checkToken(Request $request)
     {
-        if ($request->query('token') !== env('MIGRATION_TEST_TOKEN')) {
-            abort(403, 'Unauthorized migration access. Invalid or missing token.');
+        $token = $request->input('token');
+        
+        // If token is provided in request, check it and save to session
+        if ($token) {
+            if ($token !== env('MIGRATION_TEST_TOKEN')) {
+                abort(403, 'Unauthorized migration access. Invalid token.');
+            }
+            $request->session()->put('migration_authorized', true);
+            return;
+        }
+        
+        // If no token in request, check session
+        if (!$request->session()->get('migration_authorized')) {
+            abort(403, 'Unauthorized migration access. Missing token.');
         }
     }
 
