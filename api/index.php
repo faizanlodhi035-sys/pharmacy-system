@@ -67,25 +67,6 @@ if (empty($_ENV['APP_KEY'])) {
     putenv('APP_KEY=base64:nd/sNgRY/g4eQBVZL0iNa7GJPDz+iAEIna2N+UL8fys=');
 }
 
-// On fresh container, run migrations to ensure all tables exist
-if ($isFreshContainer) {
-    try {
-        $app = require_once __DIR__ . '/../bootstrap/app.php';
-        $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
-        $kernel->call('migrate', ['--force' => true]);
-        // Seed only if DB was completely empty (no users)
-        $pdo = new PDO("sqlite:{$targetDb}");
-        $count = $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='users'")->fetchColumn();
-        if ($count) {
-            $userCount = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
-            if ($userCount == 0) {
-                $kernel->call('db:seed', ['--force' => true]);
-            }
-        }
-    } catch (\Throwable $e) {
-        @file_put_contents('/tmp/migration_error.log', date('Y-m-d H:i:s') . ' ' . $e->getMessage() . "\n", FILE_APPEND);
-    }
-}
 
 require __DIR__ . '/../public/index.php';
 
