@@ -235,7 +235,7 @@ class AddMedicine extends Component
 
         // --- AI Normalization Fallback ---
         $aiService = app(\App\Services\AiNormalizationService::class);
-        $normalized = $aiService->normalizeMedicineSearch($q);
+        $normalized = $aiService->normalizeMedicineSearch($q, $this->product_type);
 
         if ($normalized && isset($normalized['confidence']) && $normalized['confidence'] >= 60) {
             $normName = $normalized['normalized_name'] ?? '';
