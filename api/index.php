@@ -22,7 +22,9 @@ $targetDb = '/tmp/database/database.sqlite';
 $prodDb = __DIR__ . '/../database/production.sqlite';
 $sourceDb = __DIR__ . '/../database/database.sqlite';
 
-if (!file_exists($targetDb) || filesize($targetDb) === 0) {
+// Copy SQLite to /tmp on fresh container
+$isFreshContainer = !file_exists($targetDb) || filesize($targetDb) === 0;
+if ($isFreshContainer) {
     if (file_exists($prodDb) && filesize($prodDb) > 0) {
         @copy($prodDb, $targetDb);
     } elseif (file_exists($sourceDb) && filesize($sourceDb) > 0) {
@@ -43,6 +45,7 @@ if (!$dbConnection || $dbConnection === 'sqlite') {
         putenv("DB_DATABASE={$targetDb}");
     }
 }
+
 // Set environment variables for Vercel Serverless
 putenv('SESSION_DRIVER=cookie');
 $_ENV['SESSION_DRIVER'] = 'cookie';
@@ -64,4 +67,25 @@ if (empty($_ENV['APP_KEY'])) {
     putenv('APP_KEY=base64:nd/sNgRY/g4eQBVZL0iNa7GJPDz+iAEIna2N+UL8fys=');
 }
 
+// On fresh container, run migrations to ensure all tables exist
+if ($isFreshContainer) {
+    try {
+        $app = require_once __DIR__ . '/../bootstrap/app.php';
+        $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
+        $kernel->call('migrate', ['--force' => true]);
+        // Seed only if DB was completely empty (no users)
+        $pdo = new PDO("sqlite:{$targetDb}");
+        $count = $pdo->query("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='users'")->fetchColumn();
+        if ($count) {
+            $userCount = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+            if ($userCount == 0) {
+                $kernel->call('db:seed', ['--force' => true]);
+            }
+        }
+    } catch (\Throwable $e) {
+        @file_put_contents('/tmp/migration_error.log', date('Y-m-d H:i:s') . ' ' . $e->getMessage() . "\n", FILE_APPEND);
+    }
+}
+
 require __DIR__ . '/../public/index.php';
+
