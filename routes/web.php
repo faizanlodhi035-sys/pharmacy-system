@@ -188,3 +188,26 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 });
+Route::get('/setup-database', function (\Illuminate\Http\Request $request) {
+    set_time_limit(120);
+    $output = [];
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        $output[] = 'Migrations: ' . trim(\Illuminate\Support\Facades\Artisan::output());
+    } catch (\Exception $e) {
+        $output[] = 'Migration Error: ' . $e->getMessage();
+    }
+    try {
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+        $output[] = 'Seeding: ' . trim(\Illuminate\Support\Facades\Artisan::output());
+    } catch (\Exception $e) {
+        $output[] = 'Seed Error: ' . $e->getMessage();
+    }
+    try {
+        $users = \App\Models\User::select('name','email','role')->get();
+        $output[] = 'Users in DB: ' . $users->toJson();
+    } catch (\Exception $e) {
+        $output[] = 'User query error: ' . $e->getMessage();
+    }
+    return response()->json(['status' => 'Setup Complete', 'details' => $output]);
+});
