@@ -28,37 +28,36 @@ Route::get('/', function () {
 // Secure Admin Migration Routes (Token Protected)
 // ============================================================
 
+// ONE-TIME SETUP: Run migrations + seed admin user on Neon DB
+Route::get('/admin/setup', function (\Illuminate\Http\Request $request) {
+    set_time_limit(120);
+    $output = [];
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
+        $output[] = 'Migrations: ' . trim(\Illuminate\Support\Facades\Artisan::output());
+    } catch (\Exception $e) {
+        $output[] = 'Migration Error: ' . $e->getMessage();
+    }
+    try {
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+        $output[] = 'Seeding: ' . trim(\Illuminate\Support\Facades\Artisan::output());
+    } catch (\Exception $e) {
+        $output[] = 'Seed Error: ' . $e->getMessage();
+    }
+    // List users created
+    try {
+        $users = \App\Models\User::select('name','email','role')->get();
+        $output[] = 'Users in DB: ' . $users->toJson();
+    } catch (\Exception $e) {
+        $output[] = 'User query error: ' . $e->getMessage();
+    }
+    return response()->json(['status' => 'Setup Complete', 'details' => $output]);
+});
+
 Route::middleware('throttle:10,1')->group(function () {
     Route::get('/admin/migration', [\App\Http\Controllers\Admin\MigrationController::class, 'index'])
         ->name('admin.migration.index');
 
-    
-
-    // ONE-TIME SETUP: Run migrations + seed admin user on Neon DB
-    Route::get('/admin/setup', function (\Illuminate\Http\Request $request) {
-        set_time_limit(120);
-        $output = [];
-        try {
-            \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
-            $output[] = 'Migrations: ' . trim(\Illuminate\Support\Facades\Artisan::output());
-        } catch (\Exception $e) {
-            $output[] = 'Migration Error: ' . $e->getMessage();
-        }
-        try {
-            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-            $output[] = 'Seeding: ' . trim(\Illuminate\Support\Facades\Artisan::output());
-        } catch (\Exception $e) {
-            $output[] = 'Seed Error: ' . $e->getMessage();
-        }
-        // List users created
-        try {
-            $users = \App\Models\User::select('name','email','role')->get();
-            $output[] = 'Users in DB: ' . $users->toJson();
-        } catch (\Exception $e) {
-            $output[] = 'User query error: ' . $e->getMessage();
-        }
-        return response()->json(['status' => 'Setup Complete', 'details' => $output]);
-    });
 
     Route::post('/admin/migration/dry-run', [\App\Http\Controllers\Admin\MigrationController::class, 'dryRun'])
         ->name('admin.migration.dry_run');
