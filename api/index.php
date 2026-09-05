@@ -22,11 +22,8 @@ $targetDb = '/tmp/database/database.sqlite';
 $prodDb = __DIR__ . '/../database/production.sqlite';
 $sourceDb = __DIR__ . '/../database/database.sqlite';
 
-// Copy SQLite to /tmp on fresh container or if source is newer
-$isFreshContainer = !file_exists($targetDb) || filesize($targetDb) === 0;
-if (!$isFreshContainer && file_exists($sourceDb) && filemtime($sourceDb) > filemtime($targetDb)) {
-    $isFreshContainer = true;
-}
+// Copy SQLite to /tmp on fresh container or if ?reset_db=1 is passed
+$isFreshContainer = !file_exists($targetDb) || filesize($targetDb) === 0 || isset($_GET['reset_db']);
 if ($isFreshContainer) {
     if (file_exists($prodDb) && filesize($prodDb) > 0) {
         @copy($prodDb, $targetDb);
