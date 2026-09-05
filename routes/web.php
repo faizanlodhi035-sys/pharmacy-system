@@ -29,32 +29,62 @@ Route::get('/', function () {
 // ============================================================
 
 Route::middleware('throttle:10,1')->group(function () {
-        Route::get('/admin/migration', [\App\Http\Controllers\Admin\MigrationController::class, 'index'])
-            ->name('admin.migration.index');
-            
-        Route::get('/admin/diagnostic', function () {
-            $commit = trim(exec('git log -1 --oneline 2>/dev/null') ?: 'Unknown');
-            $routes = \Illuminate\Support\Facades\Route::getRoutes()->getRoutes();
-            $migrationRouteExists = false;
-            foreach ($routes as $route) {
-                if ($route->uri() === 'admin/migration') {
-                    $migrationRouteExists = true;
-                }
+    Route::get('/admin/migration', [\App\Http\Controllers\Admin\MigrationController::class, 'index'])
+        ->name('admin.migration.index');
+
+    Route::get('/admin/diagnostic', function () {
+        $commit = trim(exec('git log -1 --oneline 2>/dev/null') ?: 'Unknown');
+        $routes = \Illuminate\Support\Facades\Route::getRoutes()->getRoutes();
+        $migrationRouteExists = false;
+        foreach ($routes as $route) {
+            if ($route->uri() === 'admin/migration') {
+                $migrationRouteExists = true;
             }
-            return response()->json([
-                'status' => 'Diagnostic OK',
-                'git_commit' => $commit,
-                'migration_route_registered' => $migrationRouteExists,
-                'time' => now()->toDateTimeString(),
-            ]);
-        });
-
-        Route::post('/admin/migration/dry-run', [\App\Http\Controllers\Admin\MigrationController::class, 'dryRun'])
-            ->name('admin.migration.dry_run');
-
-        Route::post('/admin/migration/real-transfer', [\App\Http\Controllers\Admin\MigrationController::class, 'realTransfer'])
-            ->name('admin.migration.real_transfer');
+        }
+        return response()->json([
+            'status' => 'Diagnostic OK',
+            'git_commit' => $commit,
+            'migration_route_registered' => $migrationRouteExists,
+            'time' => now()->toDateTimeString(),
+        ]);
     });
+
+    // ONE-TIME SETUP: Run migrations + seed admin user on Neon DB
+    Route::get('/admin/setup', function (\Illuminate\Http\Request $request) {
+        $token = $request->input('token');
+        if ($token !== env('MIGRATION_TEST_TOKEN')) {
+            abort(403, 'Unauthorized');
+        }
+        set_time_limit(120);
+        $output = [];
+        try {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            $output[] = 'Migrations: ' . trim(\Illuminate\Support\Facades\Artisan::output());
+        } catch (\Exception $e) {
+            $output[] = 'Migration Error: ' . $e->getMessage();
+        }
+        try {
+            \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+            $output[] = 'Seeding: ' . trim(\Illuminate\Support\Facades\Artisan::output());
+        } catch (\Exception $e) {
+            $output[] = 'Seed Error: ' . $e->getMessage();
+        }
+        // List users created
+        try {
+            $users = \App\Models\User::select('name','email','role')->get();
+            $output[] = 'Users in DB: ' . $users->toJson();
+        } catch (\Exception $e) {
+            $output[] = 'User query error: ' . $e->getMessage();
+        }
+        return response()->json(['status' => 'Setup Complete', 'details' => $output]);
+    });
+
+    Route::post('/admin/migration/dry-run', [\App\Http\Controllers\Admin\MigrationController::class, 'dryRun'])
+        ->name('admin.migration.dry_run');
+
+    Route::post('/admin/migration/real-transfer', [\App\Http\Controllers\Admin\MigrationController::class, 'realTransfer'])
+        ->name('admin.migration.real_transfer');
+});
 
 // ============================================================
 // Auth Routes

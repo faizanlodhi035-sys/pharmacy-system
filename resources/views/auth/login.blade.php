@@ -60,7 +60,37 @@
 
             <!-- Bottom Pharmacy Illustration Graphics -->
             <div class="relative z-10 w-full mt-6 flex justify-center items-end">
-                <img src="/images/pharmacy_hero_banner.png" alt="Pharmacy System Illustration" class="max-h-56 w-auto object-contain drop-shadow-md rounded-2xl">
+                <svg viewBox="0 0 280 200" class="max-h-56 w-auto drop-shadow-md" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Shelf background -->
+                    <rect x="20" y="140" width="240" height="12" rx="4" fill="#0d9488" opacity="0.3"/>
+                    <rect x="10" y="152" width="260" height="6" rx="3" fill="#008080" opacity="0.25"/>
+                    <!-- Medicine bottles -->
+                    <rect x="40" y="90" width="28" height="50" rx="6" fill="#0d9488" opacity="0.8"/>
+                    <rect x="44" y="82" width="20" height="12" rx="3" fill="#0d9488"/>
+                    <rect x="46" y="100" width="16" height="8" rx="2" fill="white" opacity="0.4"/>
+                    <text x="54" y="125" font-size="8" fill="white" text-anchor="middle" font-weight="bold">Rx</text>
+                    <!-- Pill bottle -->
+                    <rect x="82" y="95" width="32" height="45" rx="8" fill="#14b8a6" opacity="0.85"/>
+                    <rect x="84" y="86" width="28" height="13" rx="4" fill="#0f766e"/>
+                    <circle cx="98" cy="115" r="7" fill="white" opacity="0.35"/>
+                    <!-- Small bottle -->
+                    <rect x="128" y="105" width="22" height="35" rx="5" fill="#2dd4bf" opacity="0.7"/>
+                    <rect x="130" y="98" width="18" height="10" rx="3" fill="#0d9488"/>
+                    <!-- Capsule pills scattered -->
+                    <ellipse cx="170" cy="120" rx="18" ry="8" fill="#f59e0b" opacity="0.8" transform="rotate(-20 170 120)"/>
+                    <ellipse cx="178" cy="116" rx="9" ry="8" fill="#fbbf24" opacity="0.9" transform="rotate(-20 178 116)"/>
+                    <!-- Cross symbol -->
+                    <rect x="200" y="75" width="48" height="48" rx="10" fill="white" opacity="0.9"/>
+                    <rect x="218" y="83" width="12" height="32" rx="3" fill="#008080"/>
+                    <rect x="208" y="93" width="32" height="12" rx="3" fill="#008080"/>
+                    <!-- Small pills on shelf -->
+                    <circle cx="50" cy="148" r="5" fill="#f59e0b" opacity="0.7"/>
+                    <circle cx="65" cy="147" r="4" fill="#14b8a6" opacity="0.7"/>
+                    <circle cx="78" cy="148" r="5" fill="#ef4444" opacity="0.6"/>
+                    <!-- Stethoscope hint -->
+                    <path d="M210 140 Q225 130 230 145 Q235 155 225 158 Q215 160 213 152" stroke="#0d9488" stroke-width="3" fill="none" opacity="0.6" stroke-linecap="round"/>
+                    <circle cx="211" cy="151" r="4" fill="#0d9488" opacity="0.6"/>
+                </svg>
             </div>
         </div>
 
