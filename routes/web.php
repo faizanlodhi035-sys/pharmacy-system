@@ -55,7 +55,6 @@ Route::middleware('throttle:10,1')->group(function () {
         Route::post('/admin/migration/real-transfer', [\App\Http\Controllers\Admin\MigrationController::class, 'realTransfer'])
             ->name('admin.migration.real_transfer');
     });
-});
 
 // ============================================================
 // Auth Routes
