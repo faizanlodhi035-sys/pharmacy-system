@@ -32,22 +32,7 @@ Route::middleware('throttle:10,1')->group(function () {
     Route::get('/admin/migration', [\App\Http\Controllers\Admin\MigrationController::class, 'index'])
         ->name('admin.migration.index');
 
-    Route::get('/admin/diagnostic', function () {
-        $commit = trim(exec('git log -1 --oneline 2>/dev/null') ?: 'Unknown');
-        $routes = \Illuminate\Support\Facades\Route::getRoutes()->getRoutes();
-        $migrationRouteExists = false;
-        foreach ($routes as $route) {
-            if ($route->uri() === 'admin/migration') {
-                $migrationRouteExists = true;
-            }
-        }
-        return response()->json([
-            'status' => 'Diagnostic OK',
-            'git_commit' => $commit,
-            'migration_route_registered' => $migrationRouteExists,
-            'time' => now()->toDateTimeString(),
-        ]);
-    });
+    
 
     // ONE-TIME SETUP: Run migrations + seed admin user on Neon DB
     Route::get('/admin/setup', function (\Illuminate\Http\Request $request) {
@@ -188,26 +173,5 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 });
-Route::get('/setup-database', function (\Illuminate\Http\Request $request) {
-    set_time_limit(120);
-    $output = [];
-    try {
-        \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
-        $output[] = 'Migrations: ' . trim(\Illuminate\Support\Facades\Artisan::output());
-    } catch (\Exception $e) {
-        $output[] = 'Migration Error: ' . $e->getMessage();
-    }
-    try {
-        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-        $output[] = 'Seeding: ' . trim(\Illuminate\Support\Facades\Artisan::output());
-    } catch (\Exception $e) {
-        $output[] = 'Seed Error: ' . $e->getMessage();
-    }
-    try {
-        $users = \App\Models\User::select('name','email','role')->get();
-        $output[] = 'Users in DB: ' . $users->toJson();
-    } catch (\Exception $e) {
-        $output[] = 'User query error: ' . $e->getMessage();
-    }
-    return response()->json(['status' => 'Setup Complete', 'details' => $output]);
-});
+
+
