@@ -159,7 +159,7 @@ class AddMedicine extends Component
     // Mount hook
     public function mount(): void
     {
-        // Removed auto-purging of demo medicines so they can be used for auto-complete testing.
+        $this->batch_number = 'BAT-' . strtoupper(Str::random(6));
     }
 
     // Reset pagination when filters change
@@ -734,6 +734,8 @@ class AddMedicine extends Component
             'primary_unit_selling_price', 'secondary_unit_selling_price', 'base_unit_selling_price',
             'primary_unit_barcode', 'secondary_unit_barcode', 'base_unit_barcode',
         ]);
+
+        $this->batch_number = 'BAT-' . strtoupper(Str::random(6));
 
         $this->alert_quantity = '10';
         $this->reorder_level = '10';
