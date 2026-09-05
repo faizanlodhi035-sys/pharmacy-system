@@ -107,9 +107,18 @@ Return strictly valid JSON with this exact schema based on the category:
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);
+                return [
+                    'error' => 'API Error',
+                    'status' => $response->status(),
+                    'body' => $response->json()
+                ];
             }
         } catch (\Exception $e) {
             Log::error('Gemini API connection error', ['error' => $e->getMessage()]);
+            return [
+                'error' => 'Connection Error',
+                'message' => $e->getMessage()
+            ];
         }
 
         return null;
