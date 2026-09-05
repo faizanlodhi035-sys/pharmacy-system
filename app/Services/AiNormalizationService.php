@@ -15,15 +15,18 @@ class AiNormalizationService
     public function normalizeMedicineSearch(string $query, string $productType = 'medicine'): ?array
     {
         $query = trim($query);
-        if (strlen($query) < 2) {
-            return null;
-        }
+        $cacheKey = 'ai_norm_v2_' . md5($query . '_' . $productType);
 
-        $cacheKey = 'ai_med_norm_' . md5($query);
-
-        return Cache::remember($cacheKey, 86400, function () use ($query, $productType) {
+        $result = Cache::remember($cacheKey, 86400, function () use ($query, $productType) {
             return $this->callGemini($query, $productType);
         });
+
+        // Don't cache failures so we can retry later
+        if ($result === null) {
+            Cache::forget($cacheKey);
+        }
+
+        return $result;
     }
 
     private function callGemini(string $query, string $productType): ?array
@@ -34,8 +37,8 @@ class AiNormalizationService
             return null;
         }
 
-        // We use gemini-3.6-flash as it is fast and suitable for this task
-        $endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=' . $apiKey;
+        // We use gemini-1.5-flash as it is fast and suitable for this task
+        $endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . $apiKey;
 
         $prompt = "You are an expert pharmacy data normalization assistant.
 The user is searching for an item in a pharmacy POS system: \"{$query}\"
