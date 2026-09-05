@@ -54,7 +54,7 @@ Route::middleware('throttle:10,1')->group(function () {
         set_time_limit(120);
         $output = [];
         try {
-            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+            \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
             $output[] = 'Migrations: ' . trim(\Illuminate\Support\Facades\Artisan::output());
         } catch (\Exception $e) {
             $output[] = 'Migration Error: ' . $e->getMessage();
@@ -192,7 +192,7 @@ Route::get('/setup-database', function (\Illuminate\Http\Request $request) {
     set_time_limit(120);
     $output = [];
     try {
-        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
         $output[] = 'Migrations: ' . trim(\Illuminate\Support\Facades\Artisan::output());
     } catch (\Exception $e) {
         $output[] = 'Migration Error: ' . $e->getMessage();
