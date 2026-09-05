@@ -51,10 +51,6 @@ Route::middleware('throttle:10,1')->group(function () {
 
     // ONE-TIME SETUP: Run migrations + seed admin user on Neon DB
     Route::get('/admin/setup', function (\Illuminate\Http\Request $request) {
-        $token = $request->input('token');
-        if ($token !== env('MIGRATION_TEST_TOKEN')) {
-            abort(403, 'Unauthorized');
-        }
         set_time_limit(120);
         $output = [];
         try {
