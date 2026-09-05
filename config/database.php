@@ -86,7 +86,7 @@ return [
 
         'pgsql' => [
             'driver' => 'pgsql',
-            'url' => env('POSTGRES_URL', env('DATABASE_URL', env('DB_URL'))),
+            'url' => env('POSTGRES_URL_NON_POOLING', env('POSTGRES_URL', env('DATABASE_URL', env('DB_URL')))),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '5432'),
             'database' => env('DB_DATABASE', 'laravel'),
@@ -97,9 +97,6 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
-            'options' => [
-                PDO::PGSQL_ATTR_DISABLE_PREPARES => true,
-            ],
         ],
 
         'sqlsrv' => [
