@@ -119,13 +119,25 @@ class PosCounter extends Component
                 $query->productType($this->productTypeFilter);
             })
             ->when($this->search, function($query) {
-                $query->where(function($q) {
-                    $q->where('name', 'like', '%' . $this->search . '%')
-                      ->orWhere('generic_name', 'like', '%' . $this->search . '%')
-                      ->orWhere('brand', 'like', '%' . $this->search . '%')
-                      ->orWhere('barcode', 'like', '%' . $this->search . '%')
-                      ->orWhereHas('packagings', function($pq) {
-                          $pq->where('barcode', 'like', '%' . $this->search . '%');
+                $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+                $terms = array_filter(explode(' ', strtolower($this->search)));
+                
+                $query->where(function($q) use ($like, $terms) {
+                    $q->where('barcode', '=', $this->search)
+                      ->orWhere('name', $like, '%' . $this->search . '%')
+                      ->orWhere('generic_name', $like, '%' . $this->search . '%')
+                      ->orWhere('brand', $like, '%' . $this->search . '%')
+                      ->orWhereHas('packagings', function($pq) use ($like) {
+                          $pq->where('barcode', '=', $this->search);
+                      })
+                      ->orWhere(function($subq) use ($terms, $like) {
+                          foreach ($terms as $term) {
+                              $subq->where(function($q2) use ($term, $like) {
+                                  $q2->where('name', $like, "%{$term}%")
+                                     ->orWhere('strength', $like, "%{$term}%")
+                                     ->orWhere('dosage_form', $like, "%{$term}%");
+                              });
+                          }
                       });
                 });
             })

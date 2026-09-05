@@ -572,11 +572,25 @@ class PurchaseCreate extends Component
 
         $medicineSearch = trim($this->medicineSearch);
         if ($medicineSearch !== '') {
-            $medicineQuery->where(function ($query) use ($medicineSearch) {
-                $query->where('name', 'like', '%' . $medicineSearch . '%')
-                    ->orWhere('generic_name', 'like', '%' . $medicineSearch . '%')
-                    ->orWhere('brand', 'like', '%' . $medicineSearch . '%')
-                    ->orWhere('barcode', 'like', '%' . $medicineSearch . '%');
+            $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
+            
+            // Allow searching multiple terms (like AddMedicine)
+            $terms = array_filter(explode(' ', strtolower($medicineSearch)));
+            
+            $medicineQuery->where(function ($query) use ($medicineSearch, $terms, $like) {
+                $query->where('barcode', '=', $medicineSearch)
+                    ->orWhere('name', $like, '%' . $medicineSearch . '%')
+                    ->orWhere('generic_name', $like, '%' . $medicineSearch . '%')
+                    ->orWhere('brand', $like, '%' . $medicineSearch . '%')
+                    ->orWhere(function($subq) use ($terms, $like) {
+                        foreach ($terms as $term) {
+                            $subq->where(function($q2) use ($term, $like) {
+                                $q2->where('name', $like, "%{$term}%")
+                                   ->orWhere('strength', $like, "%{$term}%")
+                                   ->orWhere('dosage_form', $like, "%{$term}%");
+                            });
+                        }
+                    });
             });
         }
 
