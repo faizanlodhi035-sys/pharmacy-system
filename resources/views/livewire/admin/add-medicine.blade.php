@@ -174,8 +174,8 @@
                             
                             @if($showProductSuggestions && count($this->suggestedProducts) > 0)
                                 <div class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-slate-100 py-1">
-                                    <div class="px-3 py-1.5 bg-slate-50 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                                        <span>Suggested Products</span>
+                                    <div class="px-3 py-1.5 bg-emerald-50 border-b border-emerald-100 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-emerald-600">
+                                        <span><i class="fa-solid fa-check-circle mr-1"></i> Verified DB Products</span>
                                         <span>{{ count($this->suggestedProducts) }} match(es)</span>
                                     </div>
                                     @foreach($this->suggestedProducts as $prod)
@@ -198,13 +198,54 @@
                                                             {{ $prod->dosage_form ?: $prod->dosage_unit }}
                                                         </span>
                                                     @endif
+                                                    <span class="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200 font-bold uppercase ml-1">
+                                                        <i class="fa-solid fa-check"></i> Verified
+                                                    </span>
                                                 </div>
                                             </div>
-                                            <div class="text-[10px] text-slate-400 mt-1 pl-5">
-                                                {{ $prod->manufacturer ?: ($prod->brand ?: 'Unknown Manufacturer') }}
+                                            <div class="text-[10px] text-slate-400 mt-1 pl-5 flex items-center gap-2">
+                                                <span>{{ $prod->manufacturer ?: ($prod->brand ?: 'Unknown Manufacturer') }}</span>
+                                                @if($prod->barcode)
+                                                    <span>&bull; Barcode: {{ $prod->barcode }}</span>
+                                                @endif
                                             </div>
                                         </button>
                                     @endforeach
+                                </div>
+                            @elseif($showProductSuggestions && $ai_suggestion)
+                                <div class="absolute z-50 left-0 right-0 mt-1 bg-white border border-indigo-200 rounded-xl shadow-xl max-h-60 overflow-y-auto divide-y divide-indigo-100 py-1">
+                                    <div class="px-3 py-1.5 bg-indigo-50 border-b border-indigo-100 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-indigo-600">
+                                        <span><i class="fa-solid fa-wand-magic-sparkles mr-1"></i> AI Suggestion (Not Verified)</span>
+                                        <span>Confidence: {{ $ai_suggestion['confidence'] ?? 0 }}%</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        wire:click="applyAiSuggestion"
+                                        class="w-full text-left px-3.5 py-3 hover:bg-indigo-50/50 flex flex-col justify-center text-sm transition group text-slate-700"
+                                    >
+                                        <div class="flex items-center justify-between w-full">
+                                            <div class="flex items-center gap-2 font-bold text-indigo-900">
+                                                <i class="fa-solid fa-robot text-xs text-indigo-500 group-hover:scale-110 transition-transform"></i>
+                                                <span>{{ $ai_suggestion['normalized_name'] ?? 'Unknown' }}</span>
+                                                @if(!empty($ai_suggestion['strength']))
+                                                    <span class="text-xs text-indigo-400 font-medium"> {{ $ai_suggestion['strength'] }}</span>
+                                                @endif
+                                            </div>
+                                            <div class="flex items-center gap-1">
+                                                @if(!empty($ai_suggestion['dosage_form']))
+                                                    <span class="text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded border border-indigo-200 font-bold uppercase tracking-wider">
+                                                        {{ $ai_suggestion['dosage_form'] }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="text-[10px] text-slate-500 mt-1.5 pl-5 flex items-center gap-2">
+                                            <span>Mfr: {{ $ai_suggestion['manufacturer'] ?? ($ai_suggestion['brand'] ?? 'Unknown') }}</span>
+                                        </div>
+                                        <div class="mt-2 text-[10px] text-center text-slate-400 bg-slate-50 py-1 rounded">
+                                            Click to auto-fill these fields (requires manual review)
+                                        </div>
+                                    </button>
                                 </div>
                             @elseif($showProductSuggestions && count($this->suggestedProducts) === 0 && strlen($product_search) >= 2)
                                 <div class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 text-center text-sm text-slate-500">

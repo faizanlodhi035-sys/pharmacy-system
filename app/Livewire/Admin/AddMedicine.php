@@ -189,6 +189,7 @@ class AddMedicine extends Component
     public bool $verified_product_match = false;
     public ?int $verified_medicine_id = null;
     public bool $showNewProductConfirmation = false;
+    public ?array $ai_suggestion = null;
 
     public function updatedName(): void { $this->verified_product_match = false; $this->verified_medicine_id = null; }
     public function updatedStrength(): void { $this->verified_product_match = false; $this->verified_medicine_id = null; }
@@ -225,7 +226,7 @@ class AddMedicine extends Component
 
         $like = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'pgsql' ? 'ilike' : 'like';
 
-        return \App\Models\Medicine::where(function($query) use ($q, $terms, $like) {
+        $results = \App\Models\Medicine::where(function($query) use ($q, $terms, $like) {
             $query->where('barcode', '=', $q)
                   ->orWhere('name', $like, "%{$q}%")
                   ->orWhere('generic_name', $like, "%{$q}%")
@@ -243,6 +244,63 @@ class AddMedicine extends Component
         ->select('id', 'name', 'dosage_unit', 'dosage_form', 'strength', 'manufacturer', 'brand', 'barcode')
         ->limit(10)
         ->get();
+
+        if ($results->count() > 0) {
+            $this->ai_suggestion = null;
+            return $results;
+        }
+
+        // --- AI Normalization Fallback ---
+        $aiService = app(\App\Services\AiNormalizationService::class);
+        $normalized = $aiService->normalizeMedicineSearch($q);
+
+        if ($normalized && isset($normalized['confidence']) && $normalized['confidence'] >= 60) {
+            $normName = $normalized['normalized_name'] ?? '';
+            $normStr = $normalized['strength'] ?? '';
+            
+            if ($normName) {
+                $query = \App\Models\Medicine::where('name', $like, "%{$normName}%");
+                if ($normStr) {
+                    $query->where('strength', $like, "%{$normStr}%");
+                }
+                $secondary = $query->limit(10)->get();
+                if ($secondary->count() > 0) {
+                    $this->ai_suggestion = null;
+                    return $secondary;
+                }
+            }
+
+            // No verified records found even after normalization, so we suggest the AI result
+            $this->ai_suggestion = $normalized;
+        } else {
+            $this->ai_suggestion = null;
+        }
+
+        return collect();
+    }
+
+    public function applyAiSuggestion(): void
+    {
+        if (!$this->ai_suggestion) return;
+
+        $this->name = $this->ai_suggestion['normalized_name'] ?? $this->name;
+        $this->strength = $this->ai_suggestion['strength'] ?? $this->strength;
+        
+        if (!empty($this->ai_suggestion['dosage_form'])) {
+            $this->dosage_form = $this->ai_suggestion['dosage_form'];
+            $this->dosage_unit = $this->ai_suggestion['dosage_form'];
+        }
+        
+        $this->brand = $this->ai_suggestion['brand'] ?? $this->brand;
+        $this->manufacturer = $this->ai_suggestion['manufacturer'] ?? $this->manufacturer;
+        
+        // Clear suggestion
+        $this->ai_suggestion = null;
+        $this->showProductSuggestions = false;
+        
+        // Explicitly unverified
+        $this->verified_product_match = false;
+        $this->verified_medicine_id = null;
     }
 
     public function selectProduct(int $id, string $name): void
