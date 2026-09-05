@@ -32,6 +32,23 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::middleware('throttle:10,1')->group(function () {
         Route::get('/admin/migration', [\App\Http\Controllers\Admin\MigrationController::class, 'index'])
             ->name('admin.migration.index');
+            
+        Route::get('/admin/diagnostic', function () {
+            $commit = trim(exec('git log -1 --oneline 2>/dev/null') ?: 'Unknown');
+            $routes = \Illuminate\Support\Facades\Route::getRoutes()->getRoutes();
+            $migrationRouteExists = false;
+            foreach ($routes as $route) {
+                if ($route->uri() === 'admin/migration') {
+                    $migrationRouteExists = true;
+                }
+            }
+            return response()->json([
+                'status' => 'Diagnostic OK',
+                'git_commit' => $commit,
+                'migration_route_registered' => $migrationRouteExists,
+                'time' => now()->toDateTimeString(),
+            ]);
+        });
 
         Route::post('/admin/migration/dry-run', [\App\Http\Controllers\Admin\MigrationController::class, 'dryRun'])
             ->name('admin.migration.dry_run');

@@ -41,6 +41,18 @@ class MigrationWebTriggerTest extends TestCase
         $response->assertSee('Database Migration Utility');
     }
 
+    public function test_admin_can_access_diagnostic_endpoint()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        
+        $response = $this->actingAs($admin)->get('/admin/diagnostic');
+        $response->assertStatus(200);
+        $response->assertJsonFragment([
+            'status' => 'Diagnostic OK',
+            'migration_route_registered' => true,
+        ]);
+    }
+
     public function test_get_request_cannot_execute_real_transfer()
     {
         $admin = User::factory()->create(['role' => 'admin']);
