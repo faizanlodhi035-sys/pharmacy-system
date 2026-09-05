@@ -32,6 +32,18 @@ Route::get('/', function () {
 Route::get('/admin/setup', function (\Illuminate\Http\Request $request) {
     set_time_limit(120);
     $output = [];
+    
+    // Force non-pooled connection for Neon migrations to prevent transaction aborts
+    $url = config('database.connections.pgsql.url');
+    $host = config('database.connections.pgsql.host');
+    if ($url) {
+        config(['database.connections.pgsql.url' => str_replace('-pooler', '', $url)]);
+    }
+    if ($host) {
+        config(['database.connections.pgsql.host' => str_replace('-pooler', '', $host)]);
+    }
+    \Illuminate\Support\Facades\DB::purge('pgsql');
+    
     try {
         \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force' => true]);
         $output[] = 'Migrations: ' . trim(\Illuminate\Support\Facades\Artisan::output());
