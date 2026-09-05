@@ -18,21 +18,26 @@ foreach ($tmpDirs as $dir) {
 // Determine database driver
 $dbConnection = getenv('DB_CONNECTION') ?: ($_ENV['DB_CONNECTION'] ?? null);
 
-// If no cloud DB connection or explicitly sqlite, use /tmp/database/database.sqlite
-if (!$dbConnection || $dbConnection === 'sqlite') {
-    $targetDb = '/tmp/database/database.sqlite';
-    $prodDb = __DIR__ . '/../database/production.sqlite';
-    $sourceDb = __DIR__ . '/../database/database.sqlite';
+$targetDb = '/tmp/database/database.sqlite';
+$prodDb = __DIR__ . '/../database/production.sqlite';
+$sourceDb = __DIR__ . '/../database/database.sqlite';
 
-    if (!file_exists($targetDb) || filesize($targetDb) === 0) {
-        if (file_exists($prodDb) && filesize($prodDb) > 0) {
-            @copy($prodDb, $targetDb);
-        } elseif (file_exists($sourceDb) && filesize($sourceDb) > 0) {
-            @copy($sourceDb, $targetDb);
-        } else {
-            @touch($targetDb);
-        }
+if (!file_exists($targetDb) || filesize($targetDb) === 0) {
+    if (file_exists($prodDb) && filesize($prodDb) > 0) {
+        @copy($prodDb, $targetDb);
+    } elseif (file_exists($sourceDb) && filesize($sourceDb) > 0) {
+        @copy($sourceDb, $targetDb);
+    } else {
+        @touch($targetDb);
     }
+}
+
+// Ensure the SQLITE_DATABASE env var is set for config/database.php
+putenv("SQLITE_DATABASE={$targetDb}");
+$_ENV['SQLITE_DATABASE'] = $targetDb;
+
+// If no cloud DB connection or explicitly sqlite, set it as the primary DB
+if (!$dbConnection || $dbConnection === 'sqlite') {
     if (empty($_ENV['DB_DATABASE']) && empty(getenv('DB_DATABASE'))) {
         $_ENV['DB_DATABASE'] = $targetDb;
         putenv("DB_DATABASE={$targetDb}");
