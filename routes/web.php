@@ -198,3 +198,15 @@ Route::get('/test-gemini', function () {
         'result' => $res,
     ]);
 });
+
+Route::get('/seed-medicines', function () {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('db:seed', [
+            '--class' => 'RealMedicinesSeeder',
+            '--force' => true
+        ]);
+        return "100+ Medicines Seeded Successfully! <a href='/medicines'>Go Back</a>";
+    } catch (\Exception $e) {
+        return "Error seeding: " . $e->getMessage();
+    }
+});
