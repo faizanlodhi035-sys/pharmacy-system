@@ -13,13 +13,13 @@ class RealMedicinesSeeder extends Seeder
     public function run(): void
     {
         $categories = [
-            'Tablet' => \App\Models\Category::firstOrCreate(['name' => 'Tablet', 'product_type' => 'medicine']),
-            'Syrup' => \App\Models\Category::firstOrCreate(['name' => 'Syrup', 'product_type' => 'medicine']),
-            'Capsule' => \App\Models\Category::firstOrCreate(['name' => 'Capsule', 'product_type' => 'medicine']),
-            'Injection' => \App\Models\Category::firstOrCreate(['name' => 'Injection', 'product_type' => 'medicine']),
-            'Drops' => \App\Models\Category::firstOrCreate(['name' => 'Drops', 'product_type' => 'medicine']),
-            'Cream' => \App\Models\Category::firstOrCreate(['name' => 'Cream', 'product_type' => 'medicine']),
-            'Ointment' => \App\Models\Category::firstOrCreate(['name' => 'Ointment', 'product_type' => 'medicine']),
+            'Tablet' => \App\Models\Category::firstOrCreate(['name' => 'Tablet', 'product_type' => 'medicine'], ['slug' => 'tablet']),
+            'Syrup' => \App\Models\Category::firstOrCreate(['name' => 'Syrup', 'product_type' => 'medicine'], ['slug' => 'syrup']),
+            'Capsule' => \App\Models\Category::firstOrCreate(['name' => 'Capsule', 'product_type' => 'medicine'], ['slug' => 'capsule']),
+            'Injection' => \App\Models\Category::firstOrCreate(['name' => 'Injection', 'product_type' => 'medicine'], ['slug' => 'injection']),
+            'Drops' => \App\Models\Category::firstOrCreate(['name' => 'Drops', 'product_type' => 'medicine'], ['slug' => 'drops']),
+            'Cream' => \App\Models\Category::firstOrCreate(['name' => 'Cream', 'product_type' => 'medicine'], ['slug' => 'cream']),
+            'Ointment' => \App\Models\Category::firstOrCreate(['name' => 'Ointment', 'product_type' => 'medicine'], ['slug' => 'ointment']),
         ];
 
         $medicines = [
