@@ -233,33 +233,26 @@ class AddMedicine extends Component
             return $results;
         }
 
-        // --- AI Normalization Fallback ---
+        return collect();
+    }
+    
+    public function askAiForProduct(): void
+    {
+        $q = trim((string)$this->product_search);
+        if (empty($q) || strlen($q) < 2) {
+            return;
+        }
+
         $aiService = app(\App\Services\AiNormalizationService::class);
         $normalized = $aiService->normalizeMedicineSearch($q, $this->product_type);
 
         if ($normalized && isset($normalized['confidence']) && $normalized['confidence'] >= 60) {
-            $normName = $normalized['normalized_name'] ?? '';
-            $normStr = $normalized['strength'] ?? '';
-            
-            if ($normName) {
-                $query = \App\Models\Medicine::where('name', $like, "%{$normName}%");
-                if ($normStr) {
-                    $query->where('strength', $like, "%{$normStr}%");
-                }
-                $secondary = $query->limit(10)->get();
-                if ($secondary->count() > 0) {
-                    $this->ai_suggestion = null;
-                    return $secondary;
-                }
-            }
-
-            // No verified records found even after normalization, so we suggest the AI result
             $this->ai_suggestion = $normalized;
+            $this->applyAiSuggestion();
+            session()->flash('ai_success', 'Product details auto-filled by AI!');
         } else {
-            $this->ai_suggestion = null;
+            session()->flash('ai_error', 'AI could not find this product or API limit reached. Please enter details manually.');
         }
-
-        return collect();
     }
 
     public function applyAiSuggestion(): void

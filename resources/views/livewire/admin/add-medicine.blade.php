@@ -249,13 +249,32 @@
                                 </div>
                             @elseif($showProductSuggestions && count($this->suggestedProducts) === 0 && strlen($product_search) >= 2)
                                 <div class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 text-center text-sm text-slate-500">
-                                    No existing product found. Will be added as a new product.
+                                    No existing product found in database.
+                                    <div class="mt-2">
+                                        <button type="button" wire:click="askAiForProduct" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center w-full gap-2">
+                                            <i class="fa-solid fa-robot"></i> Ask AI to Auto-Fill Details
+                                        </button>
+                                    </div>
                                 </div>
                             @endif
                             <div wire:loading wire:target="product_search" class="absolute right-3 top-2.5">
                                 <i class="fa-solid fa-spinner fa-spin text-slate-400 text-sm"></i>
                             </div>
+                            <div wire:loading wire:target="askAiForProduct" class="absolute right-3 top-2.5">
+                                <i class="fa-solid fa-spinner fa-spin text-blue-500 text-sm"></i>
+                            </div>
                         </div>
+                        
+                        @if (session()->has('ai_error'))
+                            <div class="mt-1 text-xs text-red-500 font-medium">
+                                <i class="fa-solid fa-circle-exclamation"></i> {{ session('ai_error') }}
+                            </div>
+                        @endif
+                        @if (session()->has('ai_success'))
+                            <div class="mt-1 text-xs text-blue-600 font-medium">
+                                <i class="fa-solid fa-check-circle"></i> {{ session('ai_success') }}
+                            </div>
+                        @endif
                     </div>
 
                     {{-- Category (Smart Searchable Auto-Suggest Dropdown & Quick Create) --}}
