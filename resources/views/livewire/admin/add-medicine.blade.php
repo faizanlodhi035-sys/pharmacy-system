@@ -166,7 +166,7 @@
                         <div class="relative" @click.outside="$wire.showProductSuggestions = false">
                             <input
                                 type="text"
-                                wire:model.live.debounce.300ms="product_search"
+                                wire:model.live.debounce.1000ms="product_search"
                                 class="w-full h-10 px-3 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400"
                                 placeholder="{{ $product_type === 'general' ? 'e.g. Lux Soap 100g / Dettol Soap / Colgate' : 'e.g. Panadol 500mg / Augmentin 625mg' }}"
                                 autocomplete="off"
