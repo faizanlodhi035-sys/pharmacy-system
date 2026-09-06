@@ -260,6 +260,7 @@ class AddMedicine extends Component
         if (!$this->ai_suggestion) return;
 
         $this->name = $this->ai_suggestion['normalized_name'] ?? $this->name;
+        $this->generic_name = $this->ai_suggestion['generic_name'] ?? $this->generic_name;
         $this->strength = $this->ai_suggestion['strength'] ?? $this->strength;
         
         if (!empty($this->ai_suggestion['dosage_form'])) {
@@ -269,6 +270,14 @@ class AddMedicine extends Component
         
         $this->brand = $this->ai_suggestion['brand'] ?? $this->brand;
         $this->manufacturer = $this->ai_suggestion['manufacturer'] ?? $this->manufacturer;
+        
+        if (!empty($this->ai_suggestion['category_name'])) {
+            $catName = $this->ai_suggestion['category_name'];
+            $category = \App\Models\Category::where('name', 'ilike', "%{$catName}%")->first();
+            if ($category) {
+                $this->selectCategory($category->id, $category->name);
+            }
+        }
         
         // Clear suggestion
         $this->ai_suggestion = null;

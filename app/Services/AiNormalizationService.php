@@ -62,6 +62,8 @@ Return strictly valid JSON with this exact schema based on the category:
         } else {
             $prompt .= "{
   \"normalized_name\": \"string (the correct medical name without form/strength, e.g. Panadol)\",
+  \"generic_name\": \"string (e.g. Paracetamol)\",
+  \"category_name\": \"string (e.g. Tablet, Syrup, Injection, Drops, etc.)\",
   \"strength\": \"string (e.g. 500mg, 250 mg)\",
   \"dosage_form\": \"string (e.g. Tablet, Syrup, Injection)\",
   \"brand\": \"string\",
