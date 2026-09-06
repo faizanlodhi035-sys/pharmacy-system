@@ -1,7 +1,7 @@
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-6rem)]" x-data="{ showModal: false }">
     
     <!-- LEFT SIDE: Medicines Grid -->
-    <div class="lg:col-span-7 flex flex-col bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+    <div class="lg:col-span-7 flex flex-col bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4 h-full overflow-hidden">
         
         @if(session()->has('message'))
             <div class="bg-emerald-50 border-l-4 border-emerald-500 p-3 text-emerald-700 text-xs font-semibold rounded-xl flex items-center justify-between">
@@ -131,7 +131,7 @@
     </div>
 
     <!-- RIGHT SIDE: Current Cart -->
-    <div class="lg:col-span-5 flex flex-col bg-white p-5 rounded-2xl shadow-sm border border-gray-100 justify-between">
+    <div class="lg:col-span-5 flex flex-col bg-white p-5 rounded-2xl shadow-sm border border-gray-100 justify-between h-full overflow-hidden">
         
         <div class="space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
