@@ -179,13 +179,14 @@ class RealMedicinesSeeder extends Seeder
 
             \App\Models\MedicinePackaging::create([
                 'medicine_id' => $medicine->id,
-                'level' => 1,
                 'unit_id' => \App\Models\Unit::where('name', $med['form'])->first()->id ?? \App\Models\Unit::first()->id,
-                'conversion_factor' => 1,
+                'parent_packaging_id' => null,
+                'quantity_in_parent' => 1,
+                'conversion_to_base' => 1,
+                'display_name' => '1 ' . $med['form'],
                 'purchase_price' => rand(50, 500),
-                'selling_price' => rand(60, 600),
+                'sale_price' => rand(60, 600),
                 'barcode' => (string)$barcode,
-                'is_base' => true,
             ]);
         }
     }
