@@ -255,6 +255,12 @@ class AddMedicine extends Component
         }
     }
 
+    public function enableManualEntry(): void
+    {
+        $this->showProductSuggestions = false;
+        $this->ai_suggestion = null;
+    }
+
     public function applyAiSuggestion(): void
     {
         if (!$this->ai_suggestion) return;

@@ -246,13 +246,21 @@
                                             Click to auto-fill these fields (requires manual review)
                                         </div>
                                     </button>
+                                    <div class="px-3 py-2 bg-slate-50 border-t border-indigo-100 text-center">
+                                        <button type="button" wire:click="enableManualEntry" class="w-full text-center text-xs font-bold text-slate-500 hover:text-slate-700 transition">
+                                            <i class="fa-solid fa-xmark mr-1"></i> Skip & Enter Manually
+                                        </button>
+                                    </div>
                                 </div>
                             @elseif($showProductSuggestions && count($this->suggestedProducts) === 0 && strlen($product_search) >= 2)
                                 <div class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl p-3 text-center text-sm text-slate-500">
                                     No existing product found in database.
-                                    <div class="mt-2">
+                                    <div class="mt-2 space-y-2">
                                         <button type="button" wire:click="askAiForProduct" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center w-full gap-2">
                                             <i class="fa-solid fa-robot"></i> Ask AI to Auto-Fill Details
+                                        </button>
+                                        <button type="button" wire:click="enableManualEntry" class="bg-slate-100 text-slate-700 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center justify-center w-full gap-2">
+                                            <i class="fa-solid fa-pen"></i> Enter Manually
                                         </button>
                                     </div>
                                 </div>
