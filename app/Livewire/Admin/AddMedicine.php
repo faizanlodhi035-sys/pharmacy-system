@@ -1136,9 +1136,6 @@ class AddMedicine extends Component
                 DB::table('sales_return_items')->where('medicine_id', $id)->delete();
                 DB::table('purchase_return_items')->where('medicine_id', $id)->delete();
                 DB::table('purchase_invoice_items')->where('medicine_id', $id)->delete();
-                if (\Illuminate\Support\Facades\Schema::hasTable('hold_invoices')) {
-                    DB::table('hold_invoices')->where('medicine_id', $id)->delete();
-                }
                 
                 if (\Illuminate\Support\Facades\Schema::hasTable('purchases')) {
                     DB::table('purchases')->where('medicine_id', $id)->delete();
@@ -1222,9 +1219,6 @@ class AddMedicine extends Component
                 DB::table('sales_return_items')->where('medicine_id', $id)->delete();
                 DB::table('purchase_return_items')->where('medicine_id', $id)->delete();
                 DB::table('purchase_invoice_items')->where('medicine_id', $id)->delete();
-                if (\Illuminate\Support\Facades\Schema::hasTable('hold_invoices')) {
-                    DB::table('hold_invoices')->where('medicine_id', $id)->delete();
-                }
 
                 StockMovement::where('medicine_id', $id)->delete();
                 MedicineBatch::where('medicine_id', $id)->delete();
