@@ -1139,6 +1139,10 @@ class AddMedicine extends Component
                 if (\Illuminate\Support\Facades\Schema::hasTable('hold_invoices')) {
                     DB::table('hold_invoices')->where('medicine_id', $id)->delete();
                 }
+                
+                if (\Illuminate\Support\Facades\Schema::hasTable('purchases')) {
+                    DB::table('purchases')->where('medicine_id', $id)->delete();
+                }
 
                 StockMovement::where('medicine_id', $id)->delete();
                 MedicineBatch::where('medicine_id', $id)->delete();

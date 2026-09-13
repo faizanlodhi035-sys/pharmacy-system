@@ -3046,6 +3046,44 @@
             </div>
         @endif
 
+        {{-- ========================================================= --}}
+        {{-- MODAL 6: NEW PRODUCT CONFIRMATION --}}
+        {{-- ========================================================= --}}
+        @if($showNewProductConfirmation)
+            <div class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fadeIn">
+                <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full border border-slate-200">
+                    <div class="p-6 text-center space-y-4">
+                        <div class="w-14 h-14 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-extrabold text-slate-900">Confirm New Product</h3>
+                            <p class="text-sm font-semibold text-amber-600 mt-1">"{{ $name }}"</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs text-slate-600 text-left space-y-1.5">
+                            Are you sure you want to manually create this new product instead of selecting an existing one or using AI auto-fill?
+                        </div>
+                        <div class="flex gap-3 pt-2">
+                            <button
+                                type="button"
+                                wire:click="cancelSaveNewProduct"
+                                class="flex-1 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-bold transition"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                wire:click="confirmSaveNewProduct"
+                                class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition active:scale-95"
+                            >
+                                Confirm & Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
     {{-- ============================================================= --}}
     {{-- AUTO-SUGGESTION DATALISTS --}}
     {{-- ============================================================= --}}
