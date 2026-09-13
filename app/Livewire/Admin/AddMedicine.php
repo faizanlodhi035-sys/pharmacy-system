@@ -593,144 +593,150 @@ class AddMedicine extends Component
                 'status' => 'active',
             ];
 
-            $medicine = Medicine::firstOrCreate(
-                ['name' => trim($this->name)],
-                $medicineData
-            );
+        try {
+            DB::transaction(function () use ($medicineData, $baseUnit, $basePrice, $basePurchasePrice, $batchNum, $primaryToSecondary, $secondaryToBase) {
+                $medicine = Medicine::firstOrCreate(
+                    ['name' => trim($this->name)],
+                    $medicineData
+                );
 
-            $medicine->update($medicineData);
+                $medicine->update($medicineData);
 
-            // Base Unit Packaging
-            $basePkg = MedicinePackaging::updateOrCreate(
-                [
+                // Base Unit Packaging
+                $basePkg = MedicinePackaging::updateOrCreate(
+                    [
+                        'medicine_id' => $medicine->id,
+                        'unit_id' => $baseUnit->id,
+                    ],
+                    [
+                        'conversion_to_base' => 1.0,
+                        'quantity_in_parent' => 1.0,
+                        'parent_packaging_id' => null,
+                        'display_name' => $this->base_unit,
+                        'barcode' => $this->base_unit_barcode ?: $this->barcode ?: null,
+                        'purchase_price' => $basePurchasePrice,
+                        'sale_price' => $basePrice,
+                        'allow_purchase' => true,
+                        'allow_sale' => true,
+                        'status' => 'active',
+                    ]
+                );
+
+                $secondaryPkg = null;
+                if (!empty($this->secondary_unit) && $this->product_type === 'medicine') {
+                    $secUnitSlug = Str::slug($this->secondary_unit);
+                    $secUnit = Unit::firstOrCreate(
+                        ['unit_id' => $secUnitSlug],
+                        ['name' => trim($this->secondary_unit), 'symbol' => substr(trim($this->secondary_unit), 0, 4), 'allow_decimal' => false, 'status' => 'active']
+                    );
+
+                    $secConversion = (float) $secondaryToBase;
+                    $secSalePrice = $this->secondary_unit_selling_price !== '' ? (float)$this->secondary_unit_selling_price : round($basePrice * $secConversion, 2);
+                    $secPurchasePrice = $this->secondary_unit_purchase_price !== '' ? (float)$this->secondary_unit_purchase_price : round($basePurchasePrice * $secConversion, 2);
+
+                    $secondaryPkg = MedicinePackaging::updateOrCreate(
+                        [
+                            'medicine_id' => $medicine->id,
+                            'unit_id' => $secUnit->id,
+                        ],
+                        [
+                            'conversion_to_base' => $secConversion,
+                            'quantity_in_parent' => (float)$secondaryToBase,
+                            'parent_packaging_id' => $basePkg->id,
+                            'display_name' => "{$this->secondary_unit} ({$secondaryToBase} {$this->base_unit}s)",
+                            'barcode' => $this->secondary_unit_barcode ?: null,
+                            'purchase_price' => $secPurchasePrice,
+                            'sale_price' => $secSalePrice,
+                            'allow_purchase' => true,
+                            'allow_sale' => true,
+                            'status' => 'active',
+                        ]
+                    );
+                }
+
+                if (!empty($this->primary_unit)) {
+                    $primUnitSlug = Str::slug($this->primary_unit);
+                    $primUnit = Unit::firstOrCreate(
+                        ['unit_id' => $primUnitSlug],
+                        ['name' => trim($this->primary_unit), 'symbol' => substr(trim($this->primary_unit), 0, 4), 'allow_decimal' => false, 'status' => 'active']
+                    );
+
+                    $primConversion = (float) ($primaryToSecondary * $secondaryToBase);
+                    $primSalePrice = $this->primary_unit_selling_price !== '' ? (float)$this->primary_unit_selling_price : round($basePrice * $primConversion, 2);
+                    $primPurchasePrice = $this->primary_unit_purchase_price !== '' ? (float)$this->primary_unit_purchase_price : round($basePurchasePrice * $primConversion, 2);
+
+                    MedicinePackaging::updateOrCreate(
+                        [
+                            'medicine_id' => $medicine->id,
+                            'unit_id' => $primUnit->id,
+                        ],
+                        [
+                            'conversion_to_base' => $primConversion,
+                            'quantity_in_parent' => (float)$primaryToSecondary,
+                            'parent_packaging_id' => $secondaryPkg ? $secondaryPkg->id : $basePkg->id,
+                            'display_name' => "{$this->primary_unit} ({$primConversion} {$this->base_unit}s)",
+                            'barcode' => $this->primary_unit_barcode ?: null,
+                            'purchase_price' => $primPurchasePrice,
+                            'sale_price' => $primSalePrice,
+                            'allow_purchase' => true,
+                            'allow_sale' => true,
+                            'status' => 'active',
+                        ]
+                    );
+                }
+
+                $inputQty = (float) $this->quantity;
+                $selectedConversion = 1.0;
+                $selectedUnitName = $this->base_unit;
+
+                if ($this->initial_stock_unit === 'primary' && !empty($this->primary_unit)) {
+                    $selectedConversion = (float) ($primaryToSecondary * $secondaryToBase);
+                    $selectedUnitName = $this->primary_unit;
+                } elseif ($this->initial_stock_unit === 'secondary' && !empty($this->secondary_unit)) {
+                    $selectedConversion = (float) $secondaryToBase;
+                    $selectedUnitName = $this->secondary_unit;
+                }
+
+                $initialBaseQuantity = round($inputQty * $selectedConversion, 4);
+
+                $batch = MedicineBatch::create([
                     'medicine_id' => $medicine->id,
-                    'unit_id' => $baseUnit->id,
-                ],
-                [
-                    'conversion_to_base' => 1.0,
-                    'quantity_in_parent' => 1.0,
-                    'parent_packaging_id' => null,
-                    'display_name' => $this->base_unit,
-                    'barcode' => $this->base_unit_barcode ?: $this->barcode ?: null,
+                    'supplier_id' => $this->supplier_id ?: null,
+                    'batch_number' => $batchNum,
+                    'quantity' => $initialBaseQuantity,
                     'purchase_price' => $basePurchasePrice,
-                    'sale_price' => $basePrice,
-                    'allow_purchase' => true,
-                    'allow_sale' => true,
+                    'selling_price' => $basePrice,
+                    'purchase_price_per_base_unit' => $basePurchasePrice,
+                    'selling_price_per_base_unit' => $basePrice,
+                    'expiry_date' => $this->has_expiry ? ($this->expiry_date ?: null) : null,
                     'status' => 'active',
-                ]
-            );
+                ]);
 
-            $secondaryPkg = null;
-            if (!empty($this->secondary_unit) && $this->product_type === 'medicine') {
-                $secUnitSlug = Str::slug($this->secondary_unit);
-                $secUnit = Unit::firstOrCreate(
-                    ['unit_id' => $secUnitSlug],
-                    ['name' => trim($this->secondary_unit), 'symbol' => substr(trim($this->secondary_unit), 0, 4), 'allow_decimal' => false, 'status' => 'active']
-                );
+                if ($initialBaseQuantity > 0) {
+                    app(StockLedgerService::class)->recordMovement(
+                        medicineId: $medicine->id,
+                        batchId: $batch->id,
+                        type: 'OPENING_STOCK',
+                        referenceId: null,
+                        referenceType: null,
+                        selectedUnitId: $baseUnit->id,
+                        quantity: $inputQty,
+                        conversionToBase: $selectedConversion,
+                        baseQuantity: $initialBaseQuantity,
+                        userId: auth()->id() ?? 1,
+                        notes: "Initial opening stock entered as {$inputQty} {$selectedUnitName}"
+                    );
+                } else {
+                    app(StockLedgerService::class)->syncInventory($medicine->id);
+                }
+            });
 
-                $secConversion = (float) $secondaryToBase;
-                $secSalePrice = $this->secondary_unit_selling_price !== '' ? (float)$this->secondary_unit_selling_price : round($basePrice * $secConversion, 2);
-                $secPurchasePrice = $this->secondary_unit_purchase_price !== '' ? (float)$this->secondary_unit_purchase_price : round($basePurchasePrice * $secConversion, 2);
-
-                $secondaryPkg = MedicinePackaging::updateOrCreate(
-                    [
-                        'medicine_id' => $medicine->id,
-                        'unit_id' => $secUnit->id,
-                    ],
-                    [
-                        'conversion_to_base' => $secConversion,
-                        'quantity_in_parent' => (float)$secondaryToBase,
-                        'parent_packaging_id' => $basePkg->id,
-                        'display_name' => "{$this->secondary_unit} ({$secondaryToBase} {$this->base_unit}s)",
-                        'barcode' => $this->secondary_unit_barcode ?: null,
-                        'purchase_price' => $secPurchasePrice,
-                        'sale_price' => $secSalePrice,
-                        'allow_purchase' => true,
-                        'allow_sale' => true,
-                        'status' => 'active',
-                    ]
-                );
-            }
-
-            if (!empty($this->primary_unit)) {
-                $primUnitSlug = Str::slug($this->primary_unit);
-                $primUnit = Unit::firstOrCreate(
-                    ['unit_id' => $primUnitSlug],
-                    ['name' => trim($this->primary_unit), 'symbol' => substr(trim($this->primary_unit), 0, 4), 'allow_decimal' => false, 'status' => 'active']
-                );
-
-                $primConversion = (float) ($primaryToSecondary * $secondaryToBase);
-                $primSalePrice = $this->primary_unit_selling_price !== '' ? (float)$this->primary_unit_selling_price : round($basePrice * $primConversion, 2);
-                $primPurchasePrice = $this->primary_unit_purchase_price !== '' ? (float)$this->primary_unit_purchase_price : round($basePurchasePrice * $primConversion, 2);
-
-                MedicinePackaging::updateOrCreate(
-                    [
-                        'medicine_id' => $medicine->id,
-                        'unit_id' => $primUnit->id,
-                    ],
-                    [
-                        'conversion_to_base' => $primConversion,
-                        'quantity_in_parent' => (float)$primaryToSecondary,
-                        'parent_packaging_id' => $secondaryPkg ? $secondaryPkg->id : $basePkg->id,
-                        'display_name' => "{$this->primary_unit} ({$primConversion} {$this->base_unit}s)",
-                        'barcode' => $this->primary_unit_barcode ?: null,
-                        'purchase_price' => $primPurchasePrice,
-                        'sale_price' => $primSalePrice,
-                        'allow_purchase' => true,
-                        'allow_sale' => true,
-                        'status' => 'active',
-                    ]
-                );
-            }
-
-            $inputQty = (float) $this->quantity;
-            $selectedConversion = 1.0;
-            $selectedUnitName = $this->base_unit;
-
-            if ($this->initial_stock_unit === 'primary' && !empty($this->primary_unit)) {
-                $selectedConversion = (float) ($primaryToSecondary * $secondaryToBase);
-                $selectedUnitName = $this->primary_unit;
-            } elseif ($this->initial_stock_unit === 'secondary' && !empty($this->secondary_unit)) {
-                $selectedConversion = (float) $secondaryToBase;
-                $selectedUnitName = $this->secondary_unit;
-            }
-
-            $initialBaseQuantity = round($inputQty * $selectedConversion, 4);
-
-            $batch = MedicineBatch::create([
-                'medicine_id' => $medicine->id,
-                'supplier_id' => $this->supplier_id ?: null,
-                'batch_number' => $batchNum,
-                'quantity' => $initialBaseQuantity,
-                'purchase_price' => $basePurchasePrice,
-                'selling_price' => $basePrice,
-                'purchase_price_per_base_unit' => $basePurchasePrice,
-                'selling_price_per_base_unit' => $basePrice,
-                'expiry_date' => $this->has_expiry ? ($this->expiry_date ?: null) : null,
-                'status' => 'active',
-            ]);
-
-            if ($initialBaseQuantity > 0) {
-                app(StockLedgerService::class)->recordMovement(
-                    medicineId: $medicine->id,
-                    batchId: $batch->id,
-                    type: 'OPENING_STOCK',
-                    referenceId: null,
-                    referenceType: null,
-                    selectedUnitId: $baseUnit->id,
-                    quantity: $inputQty,
-                    conversionToBase: $selectedConversion,
-                    baseQuantity: $initialBaseQuantity,
-                    userId: auth()->id() ?? 1,
-                    notes: "Initial opening stock entered as {$inputQty} {$selectedUnitName}"
-                );
-            } else {
-                app(StockLedgerService::class)->syncInventory($medicine->id);
-            }
-        });
-
-        $label = $this->product_type === 'general' ? 'General Store Item' : 'Medicine';
-        session()->flash('message', "{$label} Added Successfully with complete packaging hierarchy!");
+            $label = $this->product_type === 'general' ? 'General Store Item' : 'Medicine';
+            session()->flash('message', "{$label} Added Successfully with complete packaging hierarchy!");
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error saving product: ' . $e->getMessage());
+            return;
+        }
 
         $this->reset([
             'name', 'generic_name', 'brand', 'strength', 'dosage_form', 'manufacturer',
