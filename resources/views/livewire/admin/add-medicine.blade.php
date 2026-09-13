@@ -2110,7 +2110,7 @@
                                 }
                             @endphp
 
-                            <tr class="hover:bg-slate-50/80 transition group {{ $isSelected ? 'bg-indigo-50/40' : '' }}">
+                            <tr wire:key="medicine-row-{{ $medicine->id }}" class="hover:bg-slate-50/80 transition group {{ $isSelected ? 'bg-indigo-50/40' : '' }}">
 
                                 {{-- Selection Checkbox --}}
                                 <td class="px-4 py-4">
