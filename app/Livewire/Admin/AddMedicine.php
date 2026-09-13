@@ -540,7 +540,6 @@ class AddMedicine extends Component
             return;
         }
 
-        DB::transaction(function () {
             $baseUnitSlug = Str::slug($this->base_unit);
             $baseUnit = Unit::firstOrCreate(
                 ['unit_id' => $baseUnitSlug],
