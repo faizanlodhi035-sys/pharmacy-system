@@ -22,6 +22,19 @@
             </div>
 
             <div class="flex items-center gap-3">
+                <button type="button" wire:click="downloadTemplate" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50 text-sm font-semibold rounded-xl shadow-xs transition">
+                    <i class="fa-solid fa-download text-xs"></i>
+                    <span>Template</span>
+                </button>
+                
+                <div class="relative">
+                    <input type="file" wire:model="importFile" id="importFile" class="hidden" accept=".csv,.txt" wire:change="importData">
+                    <label for="importFile" class="inline-flex cursor-pointer items-center gap-2 px-4 py-2.5 bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 text-sm font-semibold rounded-xl shadow-xs transition" wire:loading.class="opacity-50 cursor-wait">
+                        <i class="fa-solid fa-file-import text-xs"></i>
+                        <span>Import CSV</span>
+                    </label>
+                </div>
+
                 <a href="/medicines"
                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 text-sm font-semibold rounded-xl shadow-xs transition">
                     <i class="fa-solid fa-arrow-left text-xs"></i>

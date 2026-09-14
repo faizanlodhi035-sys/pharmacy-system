@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\MedicineController;
 use App\Livewire\Pos\PosCounter;
 use App\Livewire\Admin\AddMedicine;
 use App\Livewire\Admin\BulkAddMedicine;
+use App\Livewire\Admin\BulkEditMedicine;
 use App\Livewire\Admin\PurchaseCreate;
 use App\Livewire\Admin\HoldInvoiceList;
 use App\Http\Controllers\Admin\ReturnController;
@@ -123,6 +124,7 @@ Route::middleware(['auth'])->group(function () {
         // Medicines
         Route::get('/medicines', AddMedicine::class);
         Route::get('/medicines/bulk-add', BulkAddMedicine::class)->name('medicines.bulk-add');
+        Route::get('/medicines/bulk-edit', BulkEditMedicine::class)->name('medicines.bulk-edit');
         Route::post('/medicines/store', [MedicineController::class, 'store']);
 
         // Purchases

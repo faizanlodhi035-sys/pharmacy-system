@@ -6,10 +6,14 @@ use App\Models\Category;
 use App\Models\Medicine;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class BulkAddMedicine extends Component
 {
+    use WithFileUploads;
+
     public array $rows = [];
+    public $importFile;
 
     public function mount(): void
     {
@@ -213,6 +217,66 @@ class BulkAddMedicine extends Component
         } catch (\Exception $e) {
             $this->addError('general', 'An error occurred while saving medicines: ' . $e->getMessage());
         }
+    }
+
+    public function downloadTemplate()
+    {
+        return response()->streamDownload(function () {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Name', 'Category ID', 'Generic Name', 'Brand', 'Manufacturer', 'Dosage Unit', 'Sale Price', 'Purchase Price', 'Alert Quantity', 'Barcode']);
+            // Example row
+            fputcsv($handle, ['Sample Medicine', '1', 'Sample Generic', 'Sample Brand', 'Sample Mfg', 'Tablet', '10.50', '8.00', '10', '123456']);
+            fclose($handle);
+        }, 'medicines_template.csv');
+    }
+
+    public function importData()
+    {
+        $this->validate([
+            'importFile' => 'required|file|mimes:csv,txt|max:5120', // 5MB max
+        ]);
+
+        $path = $this->importFile->getRealPath();
+        $file = fopen($path, 'r');
+        $header = fgetcsv($file);
+
+        $importedRows = 0;
+        
+        // Remove empty rows if any
+        foreach ($this->rows as $index => $row) {
+            if (empty(trim($row['name'] ?? ''))) {
+                unset($this->rows[$index]);
+            }
+        }
+        $this->rows = array_values($this->rows);
+
+        while (($row = fgetcsv($file)) !== false) {
+            if (count($row) < 7) continue; // Skip incomplete rows
+            if (empty(trim($row[0]))) continue;
+            
+            $this->rows[] = [
+                'name' => $row[0] ?? '',
+                'category_id' => $row[1] ?? '',
+                'generic_name' => $row[2] ?? '',
+                'brand' => $row[3] ?? '',
+                'manufacturer' => $row[4] ?? '',
+                'dosage_unit' => $row[5] ?? 'Tablet',
+                'unit_price' => $row[6] ?? '',
+                'purchase_price' => $row[7] ?? '',
+                'alert_quantity' => $row[8] ?? '10',
+                'barcode' => $row[9] ?? '',
+            ];
+            $importedRows++;
+        }
+        fclose($file);
+
+        $this->reset('importFile');
+        
+        if (empty($this->rows)) {
+            $this->addRow();
+        }
+
+        session()->flash('message', "{$importedRows} rows loaded from CSV. Please review and click Save All.");
     }
 
     public function render()
