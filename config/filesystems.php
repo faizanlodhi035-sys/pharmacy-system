@@ -38,6 +38,11 @@ return [
             'report' => false,
         ],
 
+        'tmp-for-livewire' => [
+            'driver' => 'local',
+            'root' => env('LIVEWIRE_TMP_PATH', storage_path('app/livewire-tmp')),
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

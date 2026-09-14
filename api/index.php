@@ -7,6 +7,7 @@ $tmpDirs = [
     '/tmp/storage/framework/sessions',
     '/tmp/storage/bootstrap/cache',
     '/tmp/database',
+    '/tmp/storage/app/livewire-tmp',
 ];
 
 foreach ($tmpDirs as $dir) {
@@ -57,6 +58,12 @@ $_SERVER['CACHE_STORE'] = 'array';
 
 $_ENV['VIEW_COMPILED_PATH'] = '/tmp/storage/framework/views';
 putenv('VIEW_COMPILED_PATH=/tmp/storage/framework/views');
+
+putenv('LIVEWIRE_TMP_PATH=/tmp/storage/app/livewire-tmp');
+$_ENV['LIVEWIRE_TMP_PATH'] = '/tmp/storage/app/livewire-tmp';
+
+putenv('LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK=tmp-for-livewire');
+$_ENV['LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK'] = 'tmp-for-livewire';
 
 if (empty($_ENV['APP_KEY'])) {
     $_ENV['APP_KEY'] = 'base64:nd/sNgRY/g4eQBVZL0iNa7GJPDz+iAEIna2N+UL8fys=';
